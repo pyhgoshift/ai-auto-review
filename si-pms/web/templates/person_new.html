@@ -1,0 +1,24 @@
+{{define "content"}}
+{{with .D}}
+<h1>투입 요청 등록</h1>
+<p class="muted">기본 정보만 입력하면 됩니다. 저장하면 투입 인력에게 보낼 <b>개인 입력 링크</b>가 만들어집니다. 연락처·서약·교육 확인은 본인이 직접 입력합니다.</p>
+<form method="post" action="/people/new" class="card form">
+  <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+  <div class="cols">
+    <label>성명 *<input name="name" value="{{.P.Name}}" required></label>
+    <label>소속(회사) *<input name="company" value="{{.P.Company}}" list="companies" required></label>
+    <label>직급<input name="position" value="{{.P.Position}}"></label>
+    <label>담당업무<input name="duty" value="{{.P.Duty}}" placeholder="예: 백엔드 개발"></label>
+    <label>투입 예정일<input type="date" name="start_date" value="{{.P.StartDate}}"></label>
+    <label>철수 예정일<input type="date" name="end_date" value="{{.P.EndDate}}"></label>
+    <label>이메일<input type="email" name="email" value="{{.P.Email}}"></label>
+    <label>연락처<input name="phone" value="{{.P.Phone}}"></label>
+    <label>좌석<input name="seat" value="{{.P.Seat}}"></label>
+    <label>출입증 번호<input name="badge_no" value="{{.P.BadgeNo}}"></label>
+  </div>
+  <label>비고<textarea name="note" rows="2">{{.P.Note}}</textarea></label>
+  <datalist id="companies">{{range .Companies}}<option value="{{.}}">{{end}}</datalist>
+  <button class="primary">저장하고 링크 만들기</button>
+</form>
+{{end}}
+{{end}}

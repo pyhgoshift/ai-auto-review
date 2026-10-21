@@ -1,0 +1,12 @@
+{{define "content"}}
+<div class="card login">
+  <h1>SI 프로젝트 인력·보안 관리</h1>
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{.D.Next}}">
+    <label>아이디<input name="login" autocomplete="username" required autofocus></label>
+    <label>비밀번호<input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="primary">로그인</button>
+  </form>
+  <p class="muted">투입 인력은 로그인하지 않고 담당자가 보낸 개인 링크로 접속합니다.</p>
+</div>
+{{end}}

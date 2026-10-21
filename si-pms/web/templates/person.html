@@ -1,0 +1,167 @@
+{{define "content"}}
+{{with .D}}{{$p := .P}}{{$admin := $.User.IsAdmin}}{{$csrf := $.User.CSRF}}
+<div class="head">
+  <h1>{{$p.Name}} <span class="badge {{$p.Status}}">{{$p.StatusLabel}}</span> <small class="muted">{{$p.Company}} {{$p.Position}}</small></h1>
+  <a href="/people">← 목록</a>
+</div>
+
+{{if .NewLink}}
+<div class="card linkbox">
+  <h2>본인 입력 링크 (지금 한 번만 표시됩니다)</h2>
+  <p>아래 링크를 메신저나 메일로 본인에게 전달해 주세요. 유효기한: <b>{{.LinkExpires}}</b></p>
+  <div class="copy"><input readonly value="{{.NewLink}}" id="newlink"><button type="button" data-copy="newlink">복사</button></div>
+  <p class="muted">링크를 잃어버리면 "링크 재발급"을 누르세요. 재발급하면 이전 링크는 무효가 됩니다.</p>
+</div>
+{{end}}
+
+{{if $p.RejectReason}}{{if eq $p.Status "invited"}}<div class="flash warn">반려 사유: {{$p.RejectReason}}</div>{{end}}{{end}}
+{{if $p.PurgedAt}}<div class="flash">{{$p.PurgedAt}} 개인정보(연락처 등) 파기 완료</div>{{end}}
+
+{{/* ── 단계별 다음 행동 ── */}}
+<section class="card step">
+  {{if eq $p.Status "invited"}}
+    <h2>1단계: 본인 입력 대기</h2>
+    <p>투입 인력이 링크로 정보 입력·동의·서약·교육 확인을 마치면 <b>승인대기</b>로 바뀝니다.
+    {{if .LinkValid}}현재 링크 유효기한: {{$p.TokenExpires}}{{else}}<b class="danger">유효한 링크가 없습니다.</b>{{end}}</p>
+  {{else if eq $p.Status "submitted"}}
+    <h2>2단계: 승인</h2>
+    <p>{{$p.SubmittedAt}} 본인 입력 완료. 내용을 확인하고 승인해 주세요. 승인 전에도 PC를 미리 지급할 수 있습니다.</p>
+  {{else if eq $p.Status "active"}}
+    <h2>투입중</h2>
+    <p>{{$p.ApprovedAt}} {{$p.ApprovedBy}} 승인. 철수 시점이 되면 아래 "철수 시작"을 누르세요.</p>
+  {{else if eq $p.Status "offboarding"}}
+    <h2>철수 체크리스트</h2>
+    <ul class="checklist">{{range .Checklist}}<li class="{{if .Done}}done{{else}}todo{{end}}">{{.Label}}{{if not .Done}}{{if .Info}} <small>({{.Info}})</small>{{end}}{{end}}</li>{{end}}</ul>
+  {{else}}
+    <h2>철수 완료</h2>
+    <p>실제 철수일 {{$p.ActualEndDate}}</p>
+  {{end}}
+  {{if $admin}}
+  <div class="actions">
+    {{if or (eq $p.Status "invited") (eq $p.Status "submitted")}}
+      <form method="post" action="/people/{{$p.ID}}/approve"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="primary">투입 승인</button></form>
+    {{end}}
+    {{if eq $p.Status "submitted"}}
+      <form method="post" action="/people/{{$p.ID}}/reject" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input name="reason" placeholder="반려 사유" required><button>반려</button></form>
+    {{end}}
+    {{if eq $p.Status "active"}}
+      <form method="post" action="/people/{{$p.ID}}/offboard" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}">
+        <label>실제 철수일 <input type="date" name="actual_end_date" value="{{if $p.EndDate}}{{$p.EndDate}}{{else}}{{.Today}}{{end}}" required></label>
+        <button class="warnbtn" data-confirm="철수 절차를 시작할까요?">철수 시작</button></form>
+    {{end}}
+    {{if eq $p.Status "offboarding"}}
+      {{if and $p.BadgeNo (not $p.BadgeReturnedAt)}}
+      <form method="post" action="/people/{{$p.ID}}/badge-return"><input type="hidden" name="csrf" value="{{$csrf}}"><button>출입증 반납 확인</button></form>
+      {{end}}
+      <form method="post" action="/people/{{$p.ID}}/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="primary" {{if not .ExitReady}}disabled title="체크리스트를 모두 완료해야 합니다"{{end}}>철수 완료</button></form>
+    {{end}}
+    {{if ne $p.Status "offboarded"}}
+      <form method="post" action="/people/{{$p.ID}}/link"><input type="hidden" name="csrf" value="{{$csrf}}"><button data-confirm="새 링크를 발급하면 이전 링크는 무효가 됩니다.">{{if eq $p.Status "offboarding"}}철수 서약 링크 발급{{else if eq $p.Status "active"}}재서명·교육 링크 발급{{else}}링크 재발급{{end}}</button></form>
+    {{end}}
+    {{if or (eq $p.Status "offboarding") (eq $p.Status "offboarded")}}
+      <a class="btn" href="/people/{{$p.ID}}/exit.hwpx">철수확인서 HWP</a>
+    {{end}}
+    {{if and (eq $p.Status "offboarded") (not $p.PurgedAt)}}
+      <form method="post" action="/people/{{$p.ID}}/purge"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="danger" data-confirm="연락처·이메일·생년월일·좌석·비고를 영구 삭제합니다. 성명·소속·이력·서명 기록은 감사 증빙으로 남습니다.">개인정보 파기</button></form>
+    {{end}}
+    {{if or (eq $p.Status "invited") (eq $p.Status "submitted")}}
+      <form method="post" action="/people/{{$p.ID}}/delete"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="link danger" data-confirm="이 투입 요청을 삭제할까요?">요청 삭제</button></form>
+    {{end}}
+  </div>
+  {{end}}
+</section>
+
+<div class="grid2">
+<section class="card">
+  <h2>기본 정보</h2>
+  <form method="post" action="/people/{{$p.ID}}/edit" class="form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <fieldset {{if not $admin}}disabled{{end}}>
+    <div class="cols">
+      <label>성명 *<input name="name" value="{{$p.Name}}" required></label>
+      <label>소속 *<input name="company" value="{{$p.Company}}" list="companies" required></label>
+      <label>직급<input name="position" value="{{$p.Position}}"></label>
+      <label>담당업무<input name="duty" value="{{$p.Duty}}"></label>
+      <label>연락처<input name="phone" value="{{$p.Phone}}"></label>
+      <label>이메일<input type="email" name="email" value="{{$p.Email}}"></label>
+      <label>생년월일<input type="date" name="birth_date" value="{{$p.BirthDate}}"></label>
+      <label>좌석<input name="seat" value="{{$p.Seat}}"></label>
+      <label>투입일<input type="date" name="start_date" value="{{$p.StartDate}}"></label>
+      <label>철수예정일<input type="date" name="end_date" value="{{$p.EndDate}}"></label>
+      <label>출입증 번호<input name="badge_no" value="{{$p.BadgeNo}}"></label>
+      <label>출입증 반납일<input value="{{$p.BadgeReturnedAt}}" disabled></label>
+    </div>
+    <label>비고<textarea name="note" rows="2">{{$p.Note}}</textarea></label>
+    {{if $admin}}<button>저장</button>{{end}}
+    </fieldset>
+    <datalist id="companies">{{range .Companies}}<option value="{{.}}">{{end}}</datalist>
+  </form>
+</section>
+
+<section class="card">
+  <h2>서약·동의·교육</h2>
+  {{if or (eq $p.Status "offboarding") (eq $p.Status "offboarded")}}{{range .PendingExit}}<p class="danger">미서명: {{.Title}}</p>{{end}}{{end}}
+  {{if ne $p.Status "offboarded"}}{{range .PendingOnboard}}<p class="danger">미이행: {{.Title}} ({{.KindLabel}})</p>{{end}}{{end}}
+  <table>
+    <tr><th>문서</th><th>버전</th><th>일시</th><th>방식</th><th>유효기한</th><th></th></tr>
+    {{range .Acks}}<tr><td>{{.Title}}</td><td>v{{.Version}}</td><td>{{.AckedAt}}</td><td>{{.MethodLabel}}</td><td>{{.ExpiresOn}}</td>
+      <td><a href="/acks/{{.ID}}/hwpx">HWP</a></td></tr>
+    {{else}}<tr><td colspan="6" class="muted">기록 없음</td></tr>{{end}}
+  </table>
+  {{if and $admin (ne $p.Status "offboarded")}}
+  <details><summary>서면 서약·집합 교육 결과 직접 기록</summary>
+  <form method="post" action="/people/{{$p.ID}}/ack" class="inline-form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <select name="document_id">{{range .Docs}}<option value="{{.ID}}">[{{.KindLabel}}] {{.Title}} v{{.Version}}</option>{{end}}</select>
+    <input type="date" name="date" value="{{.Today}}"><button>기록</button>
+  </form>
+  <p class="muted">종이 서약서 원본은 별도 보관하세요.</p>
+  </details>
+  {{end}}
+</section>
+</div>
+
+<div class="grid2">
+<section class="card">
+  <h2>지급 자산</h2>
+  <table>
+    <tr><th>자산번호</th><th>종류</th><th>모델</th><th>지급일</th><th>보안점검</th><th></th></tr>
+    {{range .Assets}}<tr><td><a href="/assets/{{.ID}}">{{.AssetNo}}</a></td><td>{{.Kind}}</td><td>{{.Model}}</td><td>{{.AssignedAt}}</td>
+    <td>{{.CheckLabel}} <small>{{date .LastCheckAt}}</small></td>
+    <td>{{if $admin}}<form method="post" action="/assets/{{.ID}}/return"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="back" value="/people/{{$p.ID}}"><button class="small" data-confirm="{{.AssetNo}} 반납을 기록할까요?">반납</button></form>{{end}}</td></tr>
+    {{else}}<tr><td colspan="6" class="muted">지급된 자산 없음</td></tr>{{end}}
+  </table>
+  {{if and $admin (or (eq $p.Status "submitted") (eq $p.Status "active"))}}
+  <form method="post" action="/people/{{$p.ID}}/assign" class="inline-form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <select name="asset_id" required><option value="">재고에서 선택…</option>{{range .Stock}}<option value="{{.ID}}">[{{.Kind}}] {{.AssetNo}} {{.Model}}</option>{{end}}</select>
+    <button>지급</button>
+  </form>
+  {{end}}
+  {{if .History}}<details><summary>지급·반납 이력 {{len .History}}건</summary>
+  <table>{{range .History}}<tr><td>{{.At}}</td><td>{{.KindLabel}}</td><td><a href="/assets/{{.AssetID}}">{{.AssetNo}}</a></td><td>{{.Actor}}</td><td>{{.Note}}</td></tr>{{end}}</table></details>{{end}}
+</section>
+
+<section class="card">
+  <h2>계정</h2>
+  <table>
+    <tr><th>시스템</th><th>계정ID</th><th>발급일</th><th>회수일</th><th></th></tr>
+    {{range .Accounts}}<tr><td>{{.System}}</td><td>{{.LoginID}}</td><td>{{.IssuedAt}}</td><td>{{.RevokedAt}}</td>
+    <td>{{if and $admin (not .RevokedAt)}}<form method="post" action="/accounts/{{.ID}}/revoke"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="small" data-confirm="{{.System}} 계정 회수(삭제·잠금)를 기록할까요?">회수</button></form>{{end}}</td></tr>
+    {{else}}<tr><td colspan="5" class="muted">발급된 계정 없음</td></tr>{{end}}
+  </table>
+  {{if and $admin (eq $p.Status "active")}}
+  <form method="post" action="/people/{{$p.ID}}/accounts" class="inline-form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <input name="system" list="systems" placeholder="시스템" required>
+    <input name="login_id" placeholder="계정ID" required>
+    <input type="date" name="issued_at" value="{{.Today}}">
+    <button>발급 기록</button>
+    <datalist id="systems">{{range .Systems}}<option value="{{.}}">{{end}}</datalist>
+  </form>
+  <p class="muted">실제 계정 생성은 각 시스템에서 하고, 여기에는 발급·회수 사실만 기록합니다.</p>
+  {{end}}
+</section>
+</div>
+{{end}}
+{{end}}

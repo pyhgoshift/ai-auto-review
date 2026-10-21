@@ -1,0 +1,44 @@
+{{define "content"}}
+{{with .D}}{{$admin := $.User.IsAdmin}}{{$custom := .Custom}}{{$common := .Common}}
+<h1>대장 출력</h1>
+<p class="muted">입력된 데이터로 대장을 바로 만듭니다. <b>HWP</b>는 한글 2014 이상에서 열리는 HWPX 형식입니다. 고객사가 .hwp를 요구하면 한글에서 열어 "다른 이름으로 저장 → HWP"로 저장하세요. <b>CSV</b>는 엑셀에서 바로 열립니다.</p>
+
+<table class="list">
+<tr><th>대장</th><th>출력</th><th>양식</th>{{if $admin}}<th>고객사 양식으로 교체</th>{{end}}</tr>
+{{range .Ledgers}}
+<tr>
+  <td><b>{{.Title}}</b>{{if .PerRecord}}<br><small class="muted">인력 상세 화면에서 개인별로 출력</small>{{end}}</td>
+  <td>{{if not .PerRecord}}<a class="btn" href="/exports/{{.Key}}">HWP</a> <a class="btn" href="/exports/{{.Key}}?format=csv">CSV(엑셀)</a>{{end}}</td>
+  <td>{{if index $custom .Key}}<span class="badge active">고객사 양식</span>{{else}}<span class="badge">기본 양식</span>{{end}}
+      <a href="/exports/{{.Key}}/template">양식 받기</a></td>
+  {{if $admin}}<td>
+    <form method="post" action="/exports/{{.Key}}/template" enctype="multipart/form-data" class="inline-form">
+      <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+      <input type="file" name="file" accept=".hwpx" required><button>업로드</button>
+    </form>
+    {{if index $custom .Key}}<form method="post" action="/exports/{{.Key}}/template/reset" class="inline-form"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button class="link" data-confirm="기본 양식으로 되돌릴까요?">기본 양식으로</button></form>{{end}}
+  </td>{{end}}
+</tr>
+{{end}}
+</table>
+
+<section class="card">
+  <h2>고객사 양식 만드는 법</h2>
+  <ol>
+    <li>고객사가 준 한글 양식을 엽니다(또는 위 "양식 받기"로 기본 양식을 받아 고칩니다).</li>
+    <li>값이 들어갈 자리에 아래 <b>자리표시자</b>를 입력합니다. 표의 한 행에 <code>{{"{{"}}목록.필드{{"}}"}}</code>를 넣으면 인원·자산 수만큼 그 행이 늘어납니다.</li>
+    <li><b>파일 → 다른 이름으로 저장 → 파일 형식 "HWPX"</b>로 저장한 뒤 업로드합니다.</li>
+  </ol>
+  <p class="muted">자리표시자는 서식을 바꾸지 말고 한 번에 입력하세요. 오타가 난 자리표시자는 출력물에 그대로 남으므로 바로 알 수 있습니다. 행 복제는 병합되지 않은 일반 행에서만 동작합니다.</p>
+  <h3>공통</h3>
+  <p>{{range $common}}<code>{{"{{"}}{{.}}{{"}}"}}</code> {{end}}</p>
+  {{range .Ledgers}}
+    <h3>{{.Title}}</h3>
+    {{$l := .List}}
+    {{if .List}}<p>{{range .Cols}}<code>{{"{{"}}{{$l}}.{{.}}{{"}}"}}</code> {{end}}</p>{{end}}
+    {{if .Scalars}}<p>{{range .Scalars}}<code>{{"{{"}}{{.}}{{"}}"}}</code> {{end}}</p>{{end}}
+    {{range $name, $cols := .Lists}}<p>{{range $cols}}<code>{{"{{"}}{{$name}}.{{.}}{{"}}"}}</code> {{end}}</p>{{end}}
+  {{end}}
+</section>
+{{end}}
+{{end}}

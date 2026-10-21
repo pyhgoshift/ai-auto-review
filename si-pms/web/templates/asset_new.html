@@ -1,0 +1,32 @@
+{{define "content"}}
+{{with .D}}
+<h1>자산 등록</h1>
+<div class="grid2">
+<form method="post" action="/assets/new" class="card form">
+  <h2>한 대씩 등록</h2>
+  <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+  <div class="cols">
+    <label>자산번호 *<input name="asset_no" value="{{.S.AssetNo}}" required></label>
+    <label>종류 *<select name="kind" required>{{$k := .S.Kind}}{{range .Kinds}}<option {{if eq $k .}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+    <label>모델<input name="model" value="{{.S.Model}}"></label>
+    <label>시리얼<input name="serial" value="{{.S.Serial}}"></label>
+    <label>호스트명<input name="hostname" value="{{.S.Hostname}}"></label>
+    <label>IP<input name="ip" value="{{.S.IP}}"></label>
+    <label>MAC<input name="mac" value="{{.S.MAC}}"></label>
+    <label>위치<input name="location" value="{{.S.Location}}"></label>
+  </div>
+  <label>비고<textarea name="note" rows="2">{{.S.Note}}</textarea></label>
+  <button class="primary">등록</button>
+</form>
+<form method="post" action="/assets/import" enctype="multipart/form-data" class="card form">
+  <h2>엑셀(CSV)로 한꺼번에 등록</h2>
+  <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+  <p>엑셀에서 아래 순서로 열을 만들고 <b>파일 → 다른 이름으로 저장 → CSV UTF-8</b>로 저장해 올려 주세요. 첫 줄은 머리글로 보고 건너뜁니다.</p>
+  <pre class="code">자산번호,종류,모델,시리얼,호스트명,IP,MAC,위치,비고
+PC-001,데스크톱,OptiPlex 7010,ABC123,DEV-PC-001,10.0.1.11,00:11:22:33:44:55,3층 A-01,</pre>
+  <input type="file" name="file" accept=".csv,text/csv" required>
+  <button>일괄 등록</button>
+</form>
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,24 @@
+{{define "content"}}
+{{with .D}}
+<div class="head">
+  <h1>인력 관리</h1>
+  {{if $.User.IsAdmin}}<a class="btn primary" href="/people/new">+ 투입 요청 등록</a>{{end}}
+</div>
+<div class="filters">
+  <a href="/people" {{if eq .Status ""}}class="on"{{end}}>진행 중 전체</a>
+  {{$c := .Counts}}{{$s := .Status}}
+  {{range .Statuses}}<a href="/people?status={{.}}" {{if eq $s .}}class="on"{{end}}>{{statusLabel .}} {{index $c .}}</a>{{end}}
+  <form method="get" action="/people" class="search">
+    {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
+    <input name="q" value="{{.Q}}" placeholder="성명·소속·업무 검색"><button>검색</button>
+  </form>
+</div>
+<table class="list">
+  <tr><th>성명</th><th>소속</th><th>직급</th><th>담당업무</th><th>투입일</th><th>철수예정</th><th>상태</th></tr>
+  {{range .People}}
+  <tr><td><a href="/people/{{.ID}}">{{.Name}}</a></td><td>{{.Company}}</td><td>{{.Position}}</td><td>{{.Duty}}</td>
+  <td>{{.StartDate}}</td><td>{{.EndDate}}</td><td><span class="badge {{.Status}}">{{.StatusLabel}}</span></td></tr>
+  {{else}}<tr><td colspan="7" class="muted">해당하는 인력이 없습니다.</td></tr>{{end}}
+</table>
+{{end}}
+{{end}}

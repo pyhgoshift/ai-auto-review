@@ -1,0 +1,44 @@
+{{define "content"}}
+{{with .D}}{{$d := .Doc}}{{$admin := $.User.IsAdmin}}
+<div class="head"><h1>{{if .New}}문서 추가{{else}}{{$d.Title}} <small class="muted">v{{$d.Version}}</small>{{end}}</h1><a href="/docs">← 목록</a></div>
+<div class="grid2">
+<form method="post" action="{{if .New}}/docs/new{{else}}/docs/{{$d.ID}}{{end}}" class="card form">
+  <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+  <fieldset {{if not $admin}}disabled{{end}}>
+  <div class="cols">
+    <label>구분<select name="kind">
+      <option value="privacy" {{if eq $d.Kind "privacy"}}selected{{end}}>개인정보 동의(투입 시)</option>
+      <option value="pledge" {{if eq $d.Kind "pledge"}}selected{{end}}>보안서약(투입 시)</option>
+      <option value="training" {{if eq $d.Kind "training"}}selected{{end}}>보안교육(투입 시·정기)</option>
+      <option value="exit" {{if eq $d.Kind "exit"}}selected{{end}}>철수서약(철수 시)</option>
+    </select></label>
+    <label>유효기간(개월, 0=없음)<input type="number" min="0" name="valid_months" value="{{$d.ValidMonths}}"></label>
+    <label>표시 순서<input type="number" name="sort" value="{{$d.Sort}}"></label>
+    <label class="check"><input type="checkbox" name="active" value="1" {{if $d.Active}}checked{{end}}> 사용</label>
+  </div>
+  <label>제목<input name="title" value="{{$d.Title}}" required></label>
+  <label>본문<textarea name="body" rows="16" required>{{$d.Body}}</textarea></label>
+  {{if and $admin (not .New)}}<label class="check"><input type="checkbox" name="bump" value="1"> 내용이 바뀌어 <b>전원 재서명</b>이 필요함 (버전 v{{$d.Version}} → 다음 버전)</label>{{end}}
+  {{if $admin}}<button class="primary">저장</button>{{end}}
+  </fieldset>
+</form>
+{{if not .New}}
+<section class="card">
+  <h2>이행 현황 (현재 버전 기준)</h2>
+  {{$done := .Done}}
+  <form method="post" action="/docs/{{$d.ID}}/bulk" class="form">
+    <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+    <table>
+      <tr><th></th><th>성명</th><th>소속</th><th>상태</th><th>이행일</th></tr>
+      {{range .People}}{{$day := index $done .ID}}<tr>
+        <td>{{if and $admin (not $day)}}<input type="checkbox" name="person_id" value="{{.ID}}">{{end}}</td>
+        <td><a href="/people/{{.ID}}">{{.Name}}</a></td><td>{{.Company}}</td><td>{{.StatusLabel}}</td>
+        <td>{{if $day}}{{$day}}{{else}}<span class="danger">미이행</span>{{end}}</td></tr>{{end}}
+    </table>
+    {{if $admin}}<div class="inline-form"><label>집합교육·서면서약 일자 <input type="date" name="date" value="{{.Today}}"></label><button>선택 인원 일괄 기록</button></div>{{end}}
+  </form>
+</section>
+{{end}}
+</div>
+{{end}}
+{{end}}

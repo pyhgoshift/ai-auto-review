@@ -1,0 +1,50 @@
+{{define "content"}}
+{{with .D}}{{$p := .P}}
+<div class="card selfcard">
+  <h1>{{$.Project}}</h1>
+  <p class="muted">{{.Customer}} · {{$p.Company}} {{$p.Name}} 님</p>
+
+  {{if .Done}}
+    <div class="flash">{{.Done}}</div>
+    <p>이 창은 닫으셔도 됩니다.</p>
+  {{else if and (not .Pending) (not .EditInfo)}}
+    <p class="ok">현재 서명하거나 확인할 항목이 없습니다.</p>
+  {{else if and (not .Pending) (eq $p.Status "submitted")}}
+    <p class="ok">제출이 완료되어 담당자 승인을 기다리고 있습니다. 정보를 고치려면 아래에서 수정 후 다시 제출하세요.</p>
+  {{end}}
+
+  {{if not .Done}}{{if or .Pending .EditInfo}}
+  <form method="post" class="form">
+    {{if .EditInfo}}
+    <h2>1. 본인 정보</h2>
+    <div class="cols">
+      <label>성명<input value="{{$p.Name}}" disabled></label>
+      <label>소속<input value="{{$p.Company}}" disabled></label>
+      <label>직급<input name="position" value="{{$p.Position}}"></label>
+      <label>담당업무<input name="duty" value="{{$p.Duty}}"></label>
+      <label>연락처 *<input name="phone" value="{{$p.Phone}}" required placeholder="010-0000-0000"></label>
+      <label>이메일<input type="email" name="email" value="{{$p.Email}}"></label>
+      <label>생년월일 <small>(출입증 발급 시 필요)</small><input type="date" name="birth_date" value="{{$p.BirthDate}}"></label>
+    </div>
+    <p class="muted">성명·소속이 틀렸다면 담당자에게 알려 주세요.</p>
+    {{end}}
+
+    {{if .Pending}}
+    <h2>{{if .EditInfo}}2. {{end}}읽고 동의·서약해 주세요</h2>
+    {{range .Pending}}
+      <div class="docbox">
+        <h3>{{.Title}} <small class="muted">{{.KindLabel}} v{{.Version}}</small></h3>
+        <div class="docbody">{{.Body}}</div>
+        <label class="check agree"><input type="checkbox" name="agree_{{.ID}}" value="1" required>
+          {{if eq .Kind "privacy"}}위 개인정보 수집·이용에 동의합니다.{{else if eq .Kind "training"}}위 교육 내용을 모두 읽고 이해하였습니다.{{else}}위 내용을 준수할 것을 서약합니다.{{end}}</label>
+      </div>
+    {{end}}
+    <label>서명 — 본인 성명을 정확히 입력하세요 *<input name="signature" required autocomplete="off" placeholder="{{$p.Name}}"></label>
+    <p class="muted">서명 시각과 접속 IP가 함께 기록됩니다.</p>
+    {{end}}
+    <button class="primary">제출</button>
+  </form>
+  {{end}}{{end}}
+</div>
+{{end}}
+{{end}}

@@ -1,0 +1,39 @@
+{{define "content"}}
+{{with .D}}
+<h1>현황 <small class="muted">{{.Customer}} · 기준일 {{.Today}}</small></h1>
+<div class="tiles">
+  <a class="tile" href="/people?status=active"><b>{{index .Counts "active"}}</b><span>투입중</span></a>
+  <a class="tile hl" href="/people?status=submitted"><b>{{index .Counts "submitted"}}</b><span>승인대기</span></a>
+  <a class="tile" href="/people?status=invited"><b>{{index .Counts "invited"}}</b><span>투입요청(입력 전)</span></a>
+  <a class="tile" href="/people?status=offboarding"><b>{{index .Counts "offboarding"}}</b><span>철수진행</span></a>
+  <a class="tile" href="/assets?status=assigned"><b>{{index .AssetCounts "assigned"}}</b><span>지급 PC·자산</span></a>
+  <a class="tile" href="/assets?status=stock"><b>{{index .AssetCounts "stock"}}</b><span>재고</span></a>
+</div>
+
+<div class="grid2">
+<section class="card">
+  <h2>지금 챙겨야 할 일 <small class="muted">{{len .Alerts}}건</small></h2>
+  {{if .Alerts}}
+  <ul class="alerts">
+    {{range .Alerts}}<li class="{{.Level}}"><a href="{{.Link}}">{{.Text}}</a></li>{{end}}
+  </ul>
+  {{else}}<p class="ok">누락된 항목이 없습니다.</p>{{end}}
+</section>
+<div>
+<section class="card">
+  <h2>다가오는 투입·철수 (30일)</h2>
+  {{if .Upcoming}}
+  <table><tr><th>성명</th><th>소속</th><th>상태</th><th>투입일</th><th>철수예정</th></tr>
+  {{range .Upcoming}}<tr><td><a href="/people/{{.ID}}">{{.Name}}</a></td><td>{{.Company}}</td><td><span class="badge {{.Status}}">{{.StatusLabel}}</span></td><td>{{.StartDate}}</td><td>{{.EndDate}}</td></tr>{{end}}
+  </table>
+  {{else}}<p class="muted">예정된 일정이 없습니다.</p>{{end}}
+</section>
+<section class="card">
+  <h2>소속사별 투입 인원</h2>
+  {{if .ByCompany}}<table>{{range .ByCompany}}<tr><td>{{.Company}}</td><td class="num">{{.N}}명</td></tr>{{end}}</table>
+  {{else}}<p class="muted">투입 인원이 없습니다.</p>{{end}}
+</section>
+</div>
+</div>
+{{end}}
+{{end}}

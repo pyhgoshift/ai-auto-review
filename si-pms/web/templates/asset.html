@@ -1,0 +1,66 @@
+{{define "content"}}
+{{with .D}}{{$s := .S}}{{$admin := $.User.IsAdmin}}{{$csrf := $.User.CSRF}}
+<div class="head">
+  <h1>{{$s.AssetNo}} <span class="badge a-{{$s.Status}}">{{$s.StatusLabel}}</span> <small class="muted">{{$s.Kind}} {{$s.Model}}</small></h1>
+  <a href="/assets">← 목록</a>
+</div>
+<div class="grid2">
+<section class="card">
+  <h2>사용자</h2>
+  {{if $s.PersonID.Valid}}
+    <p><a href="/people/{{$s.PersonID.Int64}}"><b>{{$s.PersonName}}</b></a> ({{$s.PersonCompany}}) · {{$s.AssignedAt}} 지급</p>
+    {{if $admin}}<form method="post" action="/assets/{{$s.ID}}/return" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}">
+      <input name="note" placeholder="반납 메모(포맷 완료 등)"><button data-confirm="반납을 기록할까요?">반납</button></form>{{end}}
+  {{else if eq $s.Status "stock"}}
+    <p class="muted">재고</p>
+    {{if $admin}}<form method="post" action="/assets/{{$s.ID}}/assign" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}">
+      <select name="person_id" required><option value="">지급 대상 선택…</option>{{range .People}}<option value="{{.ID}}">{{.Name}} ({{.Company}}) {{.StatusLabel}}</option>{{end}}</select>
+      <button>지급</button></form>{{end}}
+  {{else}}<p class="muted">{{$s.StatusLabel}} 상태</p>{{end}}
+  {{if and $admin (ne $s.Status "assigned")}}
+  <form method="post" action="/assets/{{$s.ID}}/status" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}">
+    <select name="status"><option value="stock">재고</option><option value="repair">수리</option><option value="disposed">폐기</option></select>
+    <input name="note" placeholder="사유"><button>상태 변경</button></form>
+  {{end}}
+
+  <h2>보안 점검</h2>
+  {{if $admin}}
+  <form method="post" action="/assets/{{$s.ID}}/check" class="form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <div class="checks">{{range .CheckItems}}<label class="check"><input type="checkbox" name="ok" value="{{.}}"> {{.}}</label>{{end}}</div>
+    <input name="note" placeholder="메모(조치 내용 등)">
+    <button>점검 결과 기록</button>
+  </form>
+  {{end}}
+  <table>
+    <tr><th>일시</th><th>결과</th><th>점검자</th><th>미흡 항목</th></tr>
+    {{range .Checks}}<tr><td>{{.CheckedAt}}</td><td class="{{if .Passed}}ok{{else}}danger{{end}}">{{if .Passed}}적합{{else}}부적합{{end}}</td><td>{{.Actor}}</td>
+    <td>{{range .Results}}{{if not .OK}}<span class="tag">{{.Item}}</span>{{end}}{{end}} {{.Note}}</td></tr>
+    {{else}}<tr><td colspan="4" class="muted">점검 기록 없음</td></tr>{{end}}
+  </table>
+</section>
+<section class="card">
+  <h2>자산 정보</h2>
+  <form method="post" action="/assets/{{$s.ID}}/edit" class="form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <fieldset {{if not $admin}}disabled{{end}}>
+    <div class="cols">
+      <label>자산번호 *<input name="asset_no" value="{{$s.AssetNo}}" required></label>
+      <label>종류 *<select name="kind">{{range .Kinds}}<option {{if eq $s.Kind .}}selected{{end}}>{{.}}</option>{{end}}</select></label>
+      <label>모델<input name="model" value="{{$s.Model}}"></label>
+      <label>시리얼<input name="serial" value="{{$s.Serial}}"></label>
+      <label>호스트명<input name="hostname" value="{{$s.Hostname}}"></label>
+      <label>IP<input name="ip" value="{{$s.IP}}"></label>
+      <label>MAC<input name="mac" value="{{$s.MAC}}"></label>
+      <label>위치<input name="location" value="{{$s.Location}}"></label>
+    </div>
+    <label>비고<textarea name="note" rows="2">{{$s.Note}}</textarea></label>
+    {{if $admin}}<button>저장</button>{{end}}
+    </fieldset>
+  </form>
+  <h2>이력</h2>
+  <table>{{range .Events}}<tr><td>{{.At}}</td><td>{{.KindLabel}}</td><td>{{.PersonName}}</td><td>{{.Actor}}</td><td>{{.Note}}</td></tr>{{end}}</table>
+</section>
+</div>
+{{end}}
+{{end}}

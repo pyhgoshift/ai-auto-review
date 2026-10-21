@@ -1,0 +1,45 @@
+{{define "content"}}
+{{with .D}}
+<h1>설정</h1>
+<div class="grid2">
+<form method="post" action="/settings" class="card form">
+  <h2>프로젝트</h2>
+  <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+  {{$v := .Vals}}
+  {{range .Keys}}
+    <label>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}
+    {{if or (eq .Key "check_items") (eq .Key "account_systems") (eq .Key "asset_kinds")}}
+      <textarea name="{{.Key}}" rows="6">{{index $v .Key}}</textarea>
+    {{else}}<input name="{{.Key}}" value="{{index $v .Key}}">{{end}}
+    </label>
+  {{end}}
+  <button class="primary">저장</button>
+</form>
+<div>
+<section class="card">
+  <h2>관리자 계정</h2>
+  <table>
+    <tr><th>아이디</th><th>이름</th><th>권한</th><th>생성일</th><th></th></tr>
+    {{range .Users}}<tr><td>{{.Login}}</td><td>{{.Name}}</td><td>{{if eq .Role "admin"}}관리자{{else}}조회전용{{end}}</td><td>{{date .CreatedAt}}</td>
+    <td>
+      <form method="post" action="/users/{{.ID}}/reset" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button class="small" data-confirm="임시 비밀번호를 새로 발급할까요?">비번 초기화</button></form>
+      {{if ne .ID $.User.ID}}<form method="post" action="/users/{{.ID}}/delete" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button class="small danger" data-confirm="{{.Login}} 계정을 삭제할까요?">삭제</button></form>{{end}}
+    </td></tr>{{end}}
+  </table>
+  <form method="post" action="/users" class="inline-form">
+    <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
+    <input name="login" placeholder="아이디" required>
+    <input name="name" placeholder="이름" required>
+    <select name="role"><option value="admin">관리자(PMO)</option><option value="viewer">조회전용(고객 보안담당 등)</option></select>
+    <button>추가</button>
+  </form>
+</section>
+<section class="card">
+  <h2>백업</h2>
+  <p>모든 데이터는 데이터 폴더의 <code>pms.db</code> 파일 하나에 있습니다. 정기적으로 백업하고, 백업 파일은 반출 승인 절차에 따라 보관하세요.</p>
+  <a class="btn" href="/backup">지금 백업 받기</a>
+</section>
+</div>
+</div>
+{{end}}
+{{end}}

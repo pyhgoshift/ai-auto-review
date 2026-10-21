@@ -1,0 +1,6 @@
+이 폴더의 기본 양식(*.hwpx)은 python-hwpx(Copyright 2025-2026 airmang, Apache License 2.0)의
+빈 문서 골격(Skeleton.hwpx)을 바탕으로 tools/gen_templates.py 로 생성했습니다.
+라이선스 전문: LICENSE-python-hwpx
+
+"HWPX"는 한글과컴퓨터의 문서 형식이며, 이 프로젝트는 한글과컴퓨터와 관련이 없습니다.
+본 제품은 한글과컴퓨터의 한글 문서 파일(.hwp) 공개 문서를 참고하여 개발하였습니다.

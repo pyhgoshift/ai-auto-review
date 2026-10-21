@@ -1,0 +1,27 @@
+{{define "content"}}
+{{with .D}}
+<div class="head">
+  <h1>PC·자산 관리</h1>
+  {{if $.User.IsAdmin}}<a class="btn primary" href="/assets/new">+ 자산 등록</a>{{end}}
+</div>
+<div class="filters">
+  {{$s := .Status}}{{$k := .Kind}}
+  <a href="/assets" {{if eq $s ""}}class="on"{{end}}>전체(폐기 제외)</a>
+  {{range .Statuses}}<a href="/assets?status={{.}}" {{if eq $s .}}class="on"{{end}}>{{assetStatusLabel .}}</a>{{end}}
+  <form method="get" action="/assets" class="search">
+    <select name="kind"><option value="">종류 전체</option>{{range .Kinds}}<option {{if eq $k .}}selected{{end}}>{{.}}</option>{{end}}</select>
+    {{if $s}}<input type="hidden" name="status" value="{{$s}}">{{end}}
+    <input name="q" value="{{.Q}}" placeholder="자산번호·시리얼·IP·사용자"><button>검색</button>
+  </form>
+</div>
+<table class="list">
+  <tr><th>자산번호</th><th>종류</th><th>모델</th><th>시리얼</th><th>IP</th><th>상태</th><th>사용자</th><th>지급일</th><th>보안점검</th></tr>
+  {{range .Assets}}
+  <tr><td><a href="/assets/{{.ID}}">{{.AssetNo}}</a></td><td>{{.Kind}}</td><td>{{.Model}}</td><td>{{.Serial}}</td><td>{{.IP}}</td>
+  <td><span class="badge a-{{.Status}}">{{.StatusLabel}}</span></td>
+  <td>{{if .PersonID.Valid}}<a href="/people/{{.PersonID.Int64}}">{{.PersonName}}</a>{{end}}</td><td>{{.AssignedAt}}</td>
+  <td class="chk-{{.CheckLabel}}">{{.CheckLabel}} <small>{{date .LastCheckAt}}</small></td></tr>
+  {{else}}<tr><td colspan="9" class="muted">자산이 없습니다.</td></tr>{{end}}
+</table>
+{{end}}
+{{end}}

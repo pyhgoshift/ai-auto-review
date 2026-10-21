@@ -1,0 +1,15 @@
+{{define "content"}}
+{{with .D}}
+<div class="head">
+  <h1>서약·동의·교육 문서</h1>
+  {{if $.User.IsAdmin}}<a class="btn primary" href="/docs/new">+ 문서 추가</a>{{end}}
+</div>
+<p class="muted">투입 인력은 본인 링크에서 <b>개인정보 동의 · 보안서약 · 보안교육</b>을, 철수 시에는 <b>철수서약</b>을 읽고 서명합니다. 유효기간이 있는 문서(정기 보안교육 등)는 기한이 지나면 다시 받아야 하는 항목으로 바뀝니다.</p>
+{{$st := .Stats}}
+<table class="list">
+  <tr><th>구분</th><th>제목</th><th>버전</th><th>유효기간</th><th>현재 버전 서명 인원</th><th>사용</th><th>수정일</th></tr>
+  {{range .Docs}}<tr><td>{{.KindLabel}}</td><td><a href="/docs/{{.ID}}">{{.Title}}</a></td><td>v{{.Version}}</td>
+  <td>{{if .ValidMonths}}{{.ValidMonths}}개월{{else}}없음{{end}}</td><td class="num">{{index $st .ID}}명</td><td>{{if .Active}}사용{{else}}<span class="muted">중지</span>{{end}}</td><td>{{date .UpdatedAt}}</td></tr>{{end}}
+</table>
+{{end}}
+{{end}}
