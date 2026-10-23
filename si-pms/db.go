@@ -131,6 +131,19 @@ CREATE TABLE IF NOT EXISTS accounts(
 	revoked_at TEXT NOT NULL DEFAULT '',
 	note TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS nac_entries(
+	id INTEGER PRIMARY KEY,
+	person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+	asset_id INTEGER NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+	mac TEXT NOT NULL,
+	ip TEXT NOT NULL DEFAULT '',
+	status TEXT NOT NULL,
+	requested_at TEXT NOT NULL,
+	registered_at TEXT NOT NULL DEFAULT '',
+	removal_requested_at TEXT NOT NULL DEFAULT '',
+	removed_at TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS nac_status ON nac_entries(status);
 CREATE TABLE IF NOT EXISTS audit(
 	id INTEGER PRIMARY KEY,
 	at TEXT NOT NULL,
@@ -159,7 +172,14 @@ var defaultSettings = map[string]string{
 	"account_systems": strings.Join([]string{
 		"AD(도메인 계정)", "VPN", "형상관리(Git)", "DB 접근제어", "개발 서버", "메신저/메일",
 	}, "\n"),
-	"asset_kinds": strings.Join([]string{"데스크톱", "노트북", "모니터", "보안USB", "기타"}, "\n"),
+	"asset_kinds":       strings.Join([]string{"데스크톱", "노트북", byodKind, "모니터", "보안USB", "기타"}, "\n"),
+	"allowed_companies": "",
+	"ip_pool":           "",
+	"ip_netmask":        "255.255.255.0",
+	"ip_gateway":        "",
+	"ip_dns":            "",
+	"base_url":          "",
+	"last_daily_run":    "",
 }
 
 type seedDoc struct {
@@ -212,6 +232,10 @@ func openDB(path string) (*sql.DB, error) {
 		if _, err := db.Exec(`INSERT OR IGNORE INTO settings(key, value) VALUES(?, ?)`, k, v); err != nil {
 			return nil, err
 		}
+	}
+	// QR 등록코드는 설치마다 무작위로 만든다(설정 화면에서 재발급 가능)
+	if _, err := db.Exec(`INSERT OR IGNORE INTO settings(key, value) VALUES('join_code', ?)`, randToken(9)); err != nil {
+		return nil, err
 	}
 	var n int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM documents`).Scan(&n); err != nil {

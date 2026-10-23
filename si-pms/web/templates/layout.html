@@ -15,9 +15,11 @@
     <a href="/" {{if eq .Path "/"}}class="on"{{end}}>현황</a>
     <a href="/people" {{if hasPrefix .Path "/people"}}class="on"{{end}}>인력</a>
     <a href="/assets" {{if hasPrefix .Path "/assets"}}class="on"{{end}}>PC·자산</a>
+    <a href="/nac" {{if hasPrefix .Path "/nac"}}class="on"{{end}}>IP·NAC</a>
     <a href="/docs" {{if hasPrefix .Path "/docs"}}class="on"{{end}}>서약·교육</a>
     <a href="/exports" {{if hasPrefix .Path "/exports"}}class="on"{{end}}>대장 출력</a>
     {{if .User.IsAdmin}}
+    <a href="/qr" {{if hasPrefix .Path "/qr"}}class="on"{{end}}>등록 QR</a>
     <a href="/settings" {{if hasPrefix .Path "/settings"}}class="on"{{end}}>설정</a>
     <a href="/audit" {{if hasPrefix .Path "/audit"}}class="on"{{end}}>감사로그</a>
     {{end}}

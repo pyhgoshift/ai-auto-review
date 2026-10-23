@@ -17,3 +17,6 @@ document.addEventListener('click', function (e) {
     copy.textContent = '복사됨';
   }
 });
+document.addEventListener('click', function (e) {
+  if (e.target.closest('[data-print]')) window.print();
+});

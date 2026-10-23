@@ -37,6 +37,7 @@ var assetStatusLabel = map[string]string{
 	"assigned": "지급",
 	"repair":   "수리",
 	"disposed": "폐기",
+	"released": "반출(반입장비)",
 }
 
 var methodLabel = map[string]string{"self": "전자서명", "offline": "서면/집합"}
@@ -316,8 +317,13 @@ func (a *App) exitChecklist(p *Person) ([]CheckItem, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
+	var nacOpen int
+	if err := a.db.QueryRow(`SELECT COUNT(*) FROM nac_entries WHERE person_id = ? AND status != ?`, p.ID, NacRemoved).Scan(&nacOpen); err != nil {
+		return nil, false, err
+	}
 	items := []CheckItem{
 		{"지급 자산 전부 반납", assets == 0, fmt.Sprintf("미반납 %d건", assets)},
+		{"NAC 해제·IP 회수", nacOpen == 0, fmt.Sprintf("미해제 %d건", nacOpen)},
 		{"계정 전부 회수", accounts == 0, fmt.Sprintf("미회수 %d건", accounts)},
 		{"출입증 반납", p.BadgeNo == "" || p.BadgeReturnedAt != "", p.BadgeNo},
 		{"철수 서약", len(pending) == 0, fmt.Sprintf("미서명 %d건", len(pending))},
@@ -368,7 +374,7 @@ func (a *App) alerts() ([]Alert, error) {
 				}
 			}
 			var pcs int
-			a.db.QueryRow(`SELECT COUNT(*) FROM assets WHERE person_id = ? AND kind IN ('데스크톱', '노트북')`, p.ID).Scan(&pcs)
+			a.db.QueryRow(`SELECT COUNT(*) FROM assets WHERE person_id = ? AND (kind IN ('데스크톱', '노트북') OR mac != '')`, p.ID).Scan(&pcs)
 			if pcs == 0 {
 				out = append(out, Alert{"warn", p.Name + ": PC 미지급", link(p)})
 			}
@@ -391,6 +397,20 @@ func (a *App) alerts() ([]Alert, error) {
 			}
 		}
 	}
+	var nacReg, nacRem int
+	a.db.QueryRow(`SELECT COUNT(*) FROM nac_entries WHERE status = ?`, NacRequested).Scan(&nacReg)
+	a.db.QueryRow(`SELECT COUNT(*) FROM nac_entries WHERE status = ?`, NacRemovalRequested).Scan(&nacRem)
+	if nacReg > 0 {
+		out = append(out, Alert{"danger", fmt.Sprintf("NAC 등록 대기 %d건 — 등록 파일을 NAC 담당에게 전달 후 완료 처리", nacReg), "/nac"})
+	}
+	if nacRem > 0 {
+		out = append(out, Alert{"danger", fmt.Sprintf("NAC 해제 대기 %d건 — 해제 파일 전달 후 완료 처리", nacRem), "/nac"})
+	}
+	if total, used, err := a.ipPoolStatus(); err == nil && total > 0 && total-used < 5 {
+		out = append(out, Alert{"warn", fmt.Sprintf("남은 IP %d개 — 대역 추가 필요", total-used), "/settings"})
+	} else if total == 0 {
+		out = append(out, Alert{"warn", "IP 대역 미설정 — 승인 시 IP를 자동 배정할 수 없습니다", "/settings"})
+	}
 	assets, err := a.listAssets(`WHERE s.status = 'assigned' ORDER BY s.asset_no`)
 	if err != nil {
 		return nil, err
@@ -407,4 +427,41 @@ func (a *App) alerts() ([]Alert, error) {
 		}
 	}
 	return out, nil
+}
+
+// approvalChecks는 승인대기 인원에 대한 자동 점검 결과다. PMO는 결과를 보고 한 번만 누르면 된다.
+func (a *App) approvalChecks(p *Person) ([]CheckItem, bool, error) {
+	pend, err := a.outstanding(p.ID, onboardKinds)
+	if err != nil {
+		return nil, false, err
+	}
+	var items []CheckItem
+	items = append(items, CheckItem{"동의·서약·교육 완료", len(pend) == 0, fmt.Sprintf("미이행 %d건", len(pend))})
+	items = append(items, CheckItem{"투입일·철수예정일", p.StartDate != "" && p.EndDate != "", ""})
+	if allowed := a.settingLines("allowed_companies"); len(allowed) > 0 {
+		items = append(items, CheckItem{"허용된 소속사", contains(allowed, p.Company), p.Company})
+	}
+	assets, err := a.listAssets(`WHERE s.person_id = ? AND s.mac != ''`, p.ID)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(assets) > 0 {
+		dup := 0
+		for _, s := range assets {
+			if a.macInUse(s.MAC, s.ID) {
+				dup++
+			}
+		}
+		items = append(items, CheckItem{"장비 MAC 중복 없음", dup == 0, fmt.Sprintf("중복 %d건", dup)})
+		total, used, err := a.ipPoolStatus()
+		items = append(items, CheckItem{"IP 여유", err == nil && total-used >= len(assets), fmt.Sprintf("남은 IP %d개", total-used)})
+	}
+	ready := true
+	for _, it := range items {
+		ready = ready && it.Done
+	}
+	if len(assets) == 0 {
+		items = append(items, CheckItem{"장비 없음: 승인 후 지급 PC 배정 필요", true, ""})
+	}
+	return items, ready, nil
 }

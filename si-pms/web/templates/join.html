@@ -1,0 +1,54 @@
+{{define "content"}}
+{{with .D}}{{$p := .P}}
+<div class="card selfcard">
+  <h1>{{$.Project}} 투입 등록</h1>
+  <p class="muted">{{.Customer}} · 이 등록을 마치고 승인되어야 <b>업무망 IP와 NAC(네트워크 접근)</b>가 발급됩니다.</p>
+  <form method="post" action="/join" class="form">
+    <input type="hidden" name="c" value="{{.Code}}">
+    <h2>1. 본인 정보</h2>
+    <div class="cols">
+      <label>성명 *<input name="name" value="{{$p.Name}}" required></label>
+      <label>소속(회사) *
+        {{if .Allowed}}<select name="company" required><option value="">선택…</option>{{range .Allowed}}<option {{if eq $p.Company .}}selected{{end}}>{{.}}</option>{{end}}</select>
+        {{else}}<input name="company" value="{{$p.Company}}" required>{{end}}</label>
+      <label>직급<input name="position" value="{{$p.Position}}"></label>
+      <label>담당업무<input name="duty" value="{{$p.Duty}}" placeholder="예: 백엔드 개발"></label>
+      <label>연락처 *<input name="phone" value="{{$p.Phone}}" required placeholder="010-0000-0000"></label>
+      <label>이메일<input type="email" name="email" value="{{$p.Email}}"></label>
+      <label>생년월일 <small>(출입증 발급 시)</small><input type="date" name="birth_date" value="{{$p.BirthDate}}"></label>
+      <label>투입일 *<input type="date" name="start_date" value="{{$p.StartDate}}" required></label>
+      <label>철수예정일 *<input type="date" name="end_date" value="{{$p.EndDate}}" required></label>
+    </div>
+
+    <h2>2. 업무에 사용할 PC</h2>
+    <label class="check"><input type="radio" name="device" value="byod" {{if ne .Device "company"}}checked{{end}}> 개인/회사 노트북을 <b>반입</b>해서 사용</label>
+    <label class="check"><input type="radio" name="device" value="company" {{if eq .Device "company"}}checked{{end}}> 현장에서 <b>지급 PC</b>를 받아 사용 (아래는 비워 두세요)</label>
+    <div class="cols">
+      <label>유선 랜 MAC 주소 (반입 시 *)<input name="mac" value="{{with .Dev}}{{.MAC}}{{end}}" placeholder="00-1A-2B-3C-4D-5E" autocomplete="off"></label>
+      <label>시리얼 번호 (반입 시 *)<input name="serial" value="{{with .Dev}}{{.Serial}}{{end}}"></label>
+      <label>모델명<input name="model" value="{{with .Dev}}{{.Model}}{{end}}"></label>
+      <label>컴퓨터 이름<input name="hostname" value="{{with .Dev}}{{.Hostname}}{{end}}"></label>
+    </div>
+    <details><summary>MAC 주소·시리얼 확인 방법 (Windows)</summary>
+      <p>① 시작 → <code>cmd</code> 실행 → <code>getmac /v</code> 입력 → 연결 이름이 <b>이더넷</b>(유선)인 줄의 "물리적 주소"<br>
+      ② 시리얼: <code>wmic bios get serialnumber</code> (또는 노트북 바닥 스티커)<br>
+      ③ 컴퓨터 이름: <code>hostname</code><br>
+      ※ 무선(Wi-Fi) MAC이나 USB 랜젠더 MAC을 쓰면 NAC 인증이 되지 않을 수 있습니다.</p>
+    </details>
+
+    <h2>3. 읽고 동의·서약해 주세요</h2>
+    {{range .Docs}}
+      <div class="docbox">
+        <h3>{{.Title}} <small class="muted">{{.KindLabel}} v{{.Version}}</small></h3>
+        <div class="docbody">{{.Body}}</div>
+        <label class="check agree"><input type="checkbox" name="agree_{{.ID}}" value="1" required>
+          {{if eq .Kind "privacy"}}위 개인정보 수집·이용에 동의합니다.{{else if eq .Kind "training"}}위 교육 내용을 모두 읽고 이해하였습니다.{{else}}위 내용을 준수할 것을 서약합니다.{{end}}</label>
+      </div>
+    {{end}}
+    <label>서명 — 본인 성명을 정확히 입력하세요 *<input name="signature" required autocomplete="off"></label>
+    <p class="muted">서명 시각과 접속 IP가 함께 기록됩니다.</p>
+    <button class="primary">등록 제출</button>
+  </form>
+</div>
+{{end}}
+{{end}}

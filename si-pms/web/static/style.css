@@ -117,3 +117,21 @@ summary { cursor: pointer; color: var(--primary); }
   .top, .actions, form, .filters { display: none !important; }
   body { background: #fff; }
 }
+
+.steps { padding-left: 20px; }
+.steps li { padding: 3px 0; color: var(--muted); }
+.steps li.done { color: var(--ok); font-weight: 600; }
+.steps li.done::marker { content: "✔ "; }
+.steps li.now { color: var(--warn); font-weight: 600; }
+.checklist.inline li { display: inline-block; margin-right: 10px; font-size: 12px; }
+.poster { text-align: center; max-width: 720px; margin: 0 auto; }
+.poster h1 { font-size: 28px; }
+.poster .big { font-size: 18px; }
+.poster ol { text-align: left; display: inline-block; font-size: 15px; }
+.poster .warn { color: var(--danger); font-size: 16px; }
+.qrimg { width: 320px; height: 320px; image-rendering: pixelated; }
+.small { font-size: 12px; }
+@media print {
+  .noprint { display: none !important; }
+  .poster { border: 0; }
+}

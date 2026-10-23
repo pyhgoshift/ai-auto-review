@@ -1,0 +1,40 @@
+{{define "content"}}
+{{with .D}}{{$admin := $.User.IsAdmin}}{{$csrf := $.User.CSRF}}
+<h1>IP·NAC</h1>
+<div class="tiles">
+  <div class="tile hl"><b>{{len .Register}}</b><span>NAC 등록 대기</span></div>
+  <div class="tile hl"><b>{{len .Remove}}</b><span>NAC 해제 대기</span></div>
+  <div class="tile"><b>{{len .Active}}</b><span>사용 중</span></div>
+  <div class="tile"><b>{{.PoolUsed}} / {{.PoolTotal}}</b><span>IP 사용 / 전체</span></div>
+</div>
+{{if .PoolErr}}<div class="flash err">{{.PoolErr}}</div>{{end}}
+<p class="muted">처리 순서: ① 아래 파일(CSV·신청서)을 받아 NAC 담당자에게 전달 → ② NAC에 등록·해제되면 해당 건을 체크하고 <b>완료 처리</b>. 등록 완료 시 투입 인력의 상태 페이지에 IP가 자동으로 나타납니다.</p>
+
+<section class="card">
+  <div class="head"><h2>등록 대기</h2>
+    <div><a class="btn" href="/nac/export?kind=register&format=csv">등록 CSV</a> <a class="btn" href="/nac/export?kind=register">신청서 HWP</a></div></div>
+  <form method="post" action="/nac/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="kind" value="register">
+  <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>장비</th><th>요청일시</th></tr>
+  {{range .Register}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td><a href="/assets/{{.AssetID}}">{{.AssetNo}}</a> {{.AssetKind}}</td><td>{{.RequestedAt}}</td></tr>
+  {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
+  {{if and $admin .Register}}<button class="primary">선택 건 NAC 등록 완료 처리</button>{{end}}
+  </form>
+</section>
+<section class="card">
+  <div class="head"><h2>해제 대기</h2>
+    <div><a class="btn" href="/nac/export?kind=remove&format=csv">해제 CSV</a> <a class="btn" href="/nac/export?kind=remove">신청서 HWP</a></div></div>
+  <form method="post" action="/nac/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="kind" value="remove">
+  <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>장비</th><th>해제요청</th></tr>
+  {{range .Remove}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td>{{.AssetNo}}</td><td>{{.RemovalRequestedAt}}</td></tr>
+  {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
+  {{if and $admin .Remove}}<button class="primary">선택 건 NAC 해제 완료 처리 (IP 회수)</button>{{end}}
+  </form>
+</section>
+<section class="card">
+  <h2>사용 중 <small class="muted">서브넷 {{.Netmask}} · 게이트웨이 {{.Gateway}} · DNS {{.DNS}}</small></h2>
+  <table><tr><th>IP</th><th>MAC</th><th>성명</th><th>소속</th><th>장비</th><th>등록일시</th><th>철수예정</th></tr>
+  {{range .Active}}<tr><td>{{.IP}}</td><td>{{.MAC}}</td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.AssetNo}}</td><td>{{.RegisteredAt}}</td><td>{{.EndDate}}</td></tr>
+  {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
+</section>
+{{end}}
+{{end}}

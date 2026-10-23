@@ -50,8 +50,9 @@ var funcs = template.FuncMap{
 		}
 		return out
 	},
-	"date":      func(s string) string { return firstN(s, 10) },
-	"hasPrefix": strings.HasPrefix,
+	"date":           func(s string) string { return firstN(s, 10) },
+	"hasPrefix":      strings.HasPrefix,
+	"nacStatusLabel": func(s string) string { return nacStatusLabel[s] },
 }
 
 func (a *App) loadTemplates() {
@@ -169,7 +170,21 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("GET /s/{token}", a.handleSelfPage)
 	mux.HandleFunc("POST /s/{token}", a.handleSelfSubmit)
 
+	// QR 셀프 등록 (로그인 없음)
+	mux.HandleFunc("GET /join", a.handleJoinPage)
+	mux.HandleFunc("POST /join", a.handleJoinSubmit)
+
 	mux.HandleFunc("GET /{$}", a.requireUser(a.handleDashboard))
+	mux.HandleFunc("GET /qr", a.requireAdmin(a.handleQRPage))
+	mux.HandleFunc("GET /qr.png", a.requireAdmin(a.handleQRImage))
+	mux.HandleFunc("POST /qr/rotate", a.requireUser(a.handleQRRotate))
+	mux.HandleFunc("POST /people/approve-ready", a.requireUser(a.handleApproveReady))
+	mux.HandleFunc("GET /nac", a.requireUser(a.handleNac))
+	mux.HandleFunc("GET /nac/export", a.requireUser(a.handleNacExport))
+	mux.HandleFunc("POST /nac/complete", a.requireUser(a.handleNacComplete))
+	mux.HandleFunc("GET /package", a.requireUser(a.handlePackage))
+	mux.HandleFunc("GET /outbox/{name}", a.requireUser(a.handleOutboxFile))
+	mux.HandleFunc("POST /run-daily", a.requireUser(a.handleRunDaily))
 
 	mux.HandleFunc("GET /people", a.requireUser(a.handlePeople))
 	mux.HandleFunc("GET /people/new", a.requireAdmin(a.handlePersonNewPage))

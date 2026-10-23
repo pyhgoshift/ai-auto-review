@@ -143,6 +143,12 @@
 </section>
 
 <section class="card">
+  <h2>IP·NAC</h2>
+  <table>
+    <tr><th>장비</th><th>MAC</th><th>IP</th><th>상태</th><th>요청</th><th>등록</th><th>해제</th></tr>
+    {{range .Nac}}<tr><td>{{.AssetNo}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td>{{.StatusLabel}}</td><td>{{date .RequestedAt}}</td><td>{{date .RegisteredAt}}</td><td>{{date .RemovedAt}}</td></tr>
+    {{else}}<tr><td colspan="7" class="muted">승인되면 MAC이 있는 장비마다 IP가 자동 배정되고 NAC 등록이 요청됩니다.</td></tr>{{end}}
+  </table>
   <h2>계정</h2>
   <table>
     <tr><th>시스템</th><th>계정ID</th><th>발급일</th><th>회수일</th><th></th></tr>

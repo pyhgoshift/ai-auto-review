@@ -3,20 +3,43 @@
 <div class="card selfcard">
   <h1>{{$.Project}}</h1>
   <p class="muted">{{.Customer}} · {{$p.Company}} {{$p.Name}} 님</p>
+  {{if .New}}<div class="flash">등록이 접수되었습니다. <b>이 페이지를 즐겨찾기</b>해 두세요. 같은 휴대폰으로 QR을 다시 찍어도 이 화면으로 옵니다.</div>{{end}}
+  {{if .Done}}<div class="flash">{{.Done}}</div>{{end}}
 
-  {{if .Done}}
-    <div class="flash">{{.Done}}</div>
-    <p>이 창은 닫으셔도 됩니다.</p>
-  {{else if and (not .Pending) (not .EditInfo)}}
-    <p class="ok">현재 서명하거나 확인할 항목이 없습니다.</p>
-  {{else if and (not .Pending) (eq $p.Status "submitted")}}
-    <p class="ok">제출이 완료되어 담당자 승인을 기다리고 있습니다. 정보를 고치려면 아래에서 수정 후 다시 제출하세요.</p>
+  <h2>진행 상태</h2>
+  <ol class="steps">
+    <li class="done">등록·서약 제출</li>
+    <li class="{{if or (eq $p.Status "active") (eq $p.Status "offboarding")}}done{{else}}now{{end}}">담당자 승인{{if eq $p.Status "submitted"}} — 대기 중{{end}}{{if eq $p.Status "invited"}} — 아래 내용 제출 필요{{end}}</li>
+    <li class="{{if .NetReady}}done{{else if eq $p.Status "active"}}now{{end}}">NAC 등록{{if and (eq $p.Status "active") (not .NetReady)}} — 처리 중{{end}}</li>
+    <li class="{{if .NetReady}}done{{end}}">네트워크 사용 가능</li>
+  </ol>
+
+  {{if eq $p.Status "active"}}
+  <h2>네트워크 정보</h2>
+  {{if .Nac}}
+    {{$net := .}}
+    {{range .Nac}}
+    <div class="docbox">
+      <b>{{.AssetNo}}</b> {{.AssetKind}} · MAC {{.MAC}} · <span class="badge {{if eq .Status "registered"}}active{{else}}submitted{{end}}">{{.StatusLabel}}</span>
+      {{if eq .Status "registered"}}
+      <table>
+        <tr><th>IP 주소</th><td><b>{{.IP}}</b></td></tr>
+        <tr><th>서브넷 마스크</th><td>{{$net.Netmask}}</td></tr>
+        <tr><th>게이트웨이</th><td>{{$net.Gateway}}</td></tr>
+        <tr><th>DNS</th><td>{{$net.DNS}}</td></tr>
+      </table>
+      <p class="muted">위 값을 PC의 이더넷 IPv4 설정에 "다음 IP 주소 사용"으로 입력하세요.</p>
+      {{else}}<p class="muted">NAC 등록이 끝나면 이 화면에 IP 정보가 나타납니다. 등록 전에는 업무망에 연결되지 않습니다.</p>{{end}}
+    </div>
+    {{end}}
+  {{else}}<p class="muted">등록된 장비가 없습니다. 지급 PC를 받으면 IP 정보가 여기에 나타납니다.</p>{{end}}
   {{end}}
+  {{if eq $p.Status "offboarding"}}<p>철수 절차가 진행 중입니다. 네트워크 사용이 해제됩니다.</p>{{end}}
 
   {{if not .Done}}{{if or .Pending .EditInfo}}
   <form method="post" class="form">
     {{if .EditInfo}}
-    <h2>1. 본인 정보</h2>
+    <h2>본인 정보</h2>
     <div class="cols">
       <label>성명<input value="{{$p.Name}}" disabled></label>
       <label>소속<input value="{{$p.Company}}" disabled></label>
@@ -26,11 +49,9 @@
       <label>이메일<input type="email" name="email" value="{{$p.Email}}"></label>
       <label>생년월일 <small>(출입증 발급 시 필요)</small><input type="date" name="birth_date" value="{{$p.BirthDate}}"></label>
     </div>
-    <p class="muted">성명·소속이 틀렸다면 담당자에게 알려 주세요.</p>
     {{end}}
-
     {{if .Pending}}
-    <h2>{{if .EditInfo}}2. {{end}}읽고 동의·서약해 주세요</h2>
+    <h2>읽고 동의·서약해 주세요</h2>
     {{range .Pending}}
       <div class="docbox">
         <h3>{{.Title}} <small class="muted">{{.KindLabel}} v{{.Version}}</small></h3>

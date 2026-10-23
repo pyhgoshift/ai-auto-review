@@ -105,6 +105,18 @@ def main():
         [6, 10, 14, 16, 16, 12, 12], landscape=False,
     )
 
+    # IP·NAC 등록/해제 신청서 (NAC 담당자 제출용)
+    b = Builder(landscape=True)
+    b.title("IP·NAC {{신청구분}} 신청서")
+    b.para("프로젝트: {{프로젝트명}}    고객사: {{고객사}}    신청일: {{출력일}}    건수: {{건수}}건", align="RIGHT", after=4)
+    b.para("네트워크 설정 — 서브넷: {{서브넷}}   게이트웨이: {{게이트웨이}}   DNS: {{DNS}}", after=4)
+    cols = ["번호", "신청구분", "MAC", "IP", "성명", "소속", "자산번호", "장비", "시리얼", "사용시작", "사용종료"]
+    b.table([cols, ["{{장비.%s}}" % c for c in cols]], [5, 7, 14, 11, 8, 11, 10, 10, 11, 9, 9])
+    b.para("")
+    b.para("위와 같이 업무망 IP 사용 및 NAC {{신청구분}}을 신청합니다.", align="CENTER")
+    b.para("신청자: {{출력자}}            NAC 담당 확인:                    (서명)", align="RIGHT")
+    b.save("nac_request.hwpx")
+
     # 개인별 보안서약서
     b = Builder()
     b.title("{{문서명}}")

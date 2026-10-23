@@ -1,0 +1,23 @@
+{{define "content"}}
+{{with .D}}
+<div class="head noprint"><h1>등록 QR</h1>
+  <div class="actions">
+    <button type="button" data-print>인쇄</button>
+    <form method="post" action="/qr/rotate" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button data-confirm="등록코드를 바꾸면 기존에 붙인 QR은 쓸 수 없습니다. 계속할까요?">등록코드 재발급</button></form>
+  </div>
+</div>
+<div class="card poster">
+  <h1>{{$.Project}}</h1>
+  <p class="big">투입 인력은 <b>첫 출근 시</b> 휴대폰으로 QR을 찍어 등록하세요</p>
+  <img src="/qr.png" alt="등록 QR 코드" class="qrimg">
+  <ol>
+    <li>본인 정보와 사용할 PC(MAC 주소)를 입력합니다</li>
+    <li>개인정보 동의·보안서약·보안교육을 확인하고 서명합니다</li>
+    <li>승인 후 같은 화면에서 <b>IP 주소와 NAC 등록 상태</b>를 확인합니다</li>
+  </ol>
+  <p class="warn"><b>등록하지 않으면 업무망 IP와 NAC가 발급되지 않습니다.</b></p>
+  <p class="muted small">{{.Customer}} · 접속 주소: {{.URL}}</p>
+</div>
+<p class="muted noprint">QR 주소가 휴대폰에서 열리지 않으면 설정의 "접속 주소"를 휴대폰에서 접근 가능한 주소로 바꾸세요(예: 현장 Wi-Fi에서 접근 가능한 서버 IP).</p>
+{{end}}
+{{end}}

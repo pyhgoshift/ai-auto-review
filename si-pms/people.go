@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -200,6 +201,11 @@ func (a *App) showPerson(w http.ResponseWriter, r *http.Request, id int64, extra
 		a.fail(w, err)
 		return
 	}
+	nac, err := a.listNac(`WHERE n.person_id = ? ORDER BY n.id DESC`, id)
+	if err != nil {
+		a.fail(w, err)
+		return
+	}
 	history, err := a.personAssetHistory(id)
 	if err != nil {
 		a.fail(w, err)
@@ -210,7 +216,7 @@ func (a *App) showPerson(w http.ResponseWriter, r *http.Request, id int64, extra
 		"PendingOnboard": pendOn, "PendingExit": pendExit, "Checklist": checklist, "ExitReady": exitReady,
 		"Docs": docs, "Systems": a.settingLines("account_systems"), "History": history,
 		"Companies": a.companies(), "Today": today(),
-		"LinkValid": p.TokenHash != "" && p.TokenExpires >= today(),
+		"LinkValid": p.TokenHash != "" && p.TokenExpires >= today(), "Nac": nac,
 	}
 	for k, v := range extra {
 		d[k] = v
@@ -304,27 +310,43 @@ func (a *App) handlePersonApprove(w http.ResponseWriter, r *http.Request) {
 	if p == nil {
 		return
 	}
-	pend, err := a.outstanding(p.ID, onboardKinds)
+	back := r.FormValue("back")
+	if back != "/" {
+		back = fmt.Sprintf("/people/%d", p.ID)
+	}
+	if err := a.activatePerson(p, userFrom(r).Name); err != nil {
+		redirectMsg(w, r, back, "승인 불가("+p.Name+"): "+err.Error())
+		return
+	}
+	a.audit(userFrom(r).Login, clientIP(r), "person_approve", fmt.Sprintf("person:%d", p.ID), p.Name)
+	redirectMsg(w, r, back, p.Name+" 승인 완료. IP 배정과 NAC 등록 요청이 자동으로 만들어졌습니다")
+}
+
+// handleApproveReady는 자동 점검을 모두 통과한 승인대기 인원을 한 번에 승인한다.
+func (a *App) handleApproveReady(w http.ResponseWriter, r *http.Request) {
+	people, err := a.listPeople(`WHERE status = ? ORDER BY submitted_at`, StSubmitted)
 	if err != nil {
 		a.fail(w, err)
-		return
-	}
-	if len(pend) > 0 {
-		redirectMsg(w, r, fmt.Sprintf("/people/%d", p.ID), "승인 불가: "+pend[0].Title+" 등 미이행 항목이 있습니다")
-		return
-	}
-	if p.StartDate == "" {
-		redirectMsg(w, r, fmt.Sprintf("/people/%d", p.ID), "승인 불가: 투입일을 먼저 입력해 주세요")
 		return
 	}
 	u := userFrom(r)
-	_, err = a.db.Exec(`UPDATE people SET status = ?, approved_by = ?, approved_at = ?, reject_reason = '', token_hash = '', token_expires = '', updated_at = ? WHERE id = ?`,
-		StActive, u.Name, nowTS(), nowTS(), p.ID)
-	if err != nil {
-		a.fail(w, err)
-		return
+	var ok, fail []string
+	for _, p := range people {
+		if _, ready, err := a.approvalChecks(p); err != nil || !ready {
+			continue
+		}
+		if err := a.activatePerson(p, u.Name); err != nil {
+			fail = append(fail, p.Name+"("+err.Error()+")")
+			continue
+		}
+		a.audit(u.Login, clientIP(r), "person_approve", fmt.Sprintf("person:%d", p.ID), p.Name+" 일괄")
+		ok = append(ok, p.Name)
 	}
-	a.personAction(w, r, p, "person_approve", "투입 승인했습니다. PC와 계정을 지급해 주세요", "")
+	msg := fmt.Sprintf("%d명 승인했습니다", len(ok))
+	if len(fail) > 0 {
+		msg += " / 실패: " + strings.Join(fail, ", ")
+	}
+	redirectMsg(w, r, "/", msg)
 }
 
 func (a *App) handlePersonReject(w http.ResponseWriter, r *http.Request) {
@@ -354,11 +376,11 @@ func (a *App) handlePersonOffboard(w http.ResponseWriter, r *http.Request) {
 		redirectMsg(w, r, fmt.Sprintf("/people/%d", p.ID), "실제 철수일을 YYYY-MM-DD 형식으로 입력해 주세요")
 		return
 	}
-	if _, err := a.db.Exec(`UPDATE people SET status = ?, actual_end_date = ?, updated_at = ? WHERE id = ?`, StOffboarding, end, nowTS(), p.ID); err != nil {
+	if err := a.startOffboarding(p, end, userFrom(r).Name); err != nil {
 		a.fail(w, err)
 		return
 	}
-	a.personAction(w, r, p, "person_offboard", "철수 절차를 시작했습니다. 체크리스트를 완료해 주세요", end)
+	a.personAction(w, r, p, "person_offboard", "철수 절차를 시작했습니다. NAC 해제 요청이 자동으로 만들어졌습니다", end)
 }
 
 func (a *App) handlePersonComplete(w http.ResponseWriter, r *http.Request) {

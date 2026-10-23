@@ -176,7 +176,7 @@ func TestFullLifecycle(t *testing.T) {
 	if p.Status != StActive {
 		t.Fatal("승인 실패", p.Status)
 	}
-	self.get(selfPath, 404)
+	self.get(selfPath, 200) // 승인 후에도 상태 페이지(IP 확인)는 유지
 
 	// 4. 자산 등록·지급·점검, 계정 발급
 	c.get("/assets/new", 200)

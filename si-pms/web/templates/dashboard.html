@@ -7,8 +7,25 @@
   <a class="tile" href="/people?status=invited"><b>{{index .Counts "invited"}}</b><span>투입요청(입력 전)</span></a>
   <a class="tile" href="/people?status=offboarding"><b>{{index .Counts "offboarding"}}</b><span>철수진행</span></a>
   <a class="tile" href="/assets?status=assigned"><b>{{index .AssetCounts "assigned"}}</b><span>지급 PC·자산</span></a>
-  <a class="tile" href="/assets?status=stock"><b>{{index .AssetCounts "stock"}}</b><span>재고</span></a>
+  <a class="tile" href="/nac"><b>{{.NacReg}} / {{.NacRem}}</b><span>NAC 등록 / 해제 대기</span></a>
+  <a class="tile" href="/nac"><b>{{.PoolUsed}} / {{.PoolTotal}}</b><span>IP 사용 / 전체</span></a>
 </div>
+<p class="muted">자동 작업(철수예정일 경과 처리·제출 패키지) 마지막 실행: {{if .LastRun}}{{.LastRun}}{{else}}아직 없음{{end}}</p>
+
+{{if .Queue}}
+<section class="card">
+  <div class="head"><h2>승인 대기 {{len .Queue}}명 <small class="muted">자동 점검 결과</small></h2>
+  {{if and $.User.IsAdmin .ReadyCount}}<form method="post" action="/people/approve-ready"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button class="primary" data-confirm="점검을 모두 통과한 {{.ReadyCount}}명을 승인합니다. IP 배정과 NAC 등록 요청이 자동으로 만들어집니다.">점검 통과 {{.ReadyCount}}명 일괄 승인</button></form>{{end}}</div>
+  <table>
+    <tr><th>성명</th><th>소속</th><th>투입 기간</th><th>자동 점검</th><th></th></tr>
+    {{range .Queue}}<tr>
+      <td><a href="/people/{{.P.ID}}">{{.P.Name}}</a></td><td>{{.P.Company}}</td><td>{{.P.StartDate}} ~ {{.P.EndDate}}</td>
+      <td><ul class="checklist inline">{{range .Checks}}<li class="{{if .Done}}done{{else}}todo{{end}}">{{.Label}}{{if not .Done}}{{if .Info}} ({{.Info}}){{end}}{{end}}</li>{{end}}</ul></td>
+      <td>{{if $.User.IsAdmin}}<form method="post" action="/people/{{.P.ID}}/approve"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><input type="hidden" name="back" value="/"><button {{if .Ready}}class="primary"{{end}}>승인</button></form>{{end}}</td>
+    </tr>{{end}}
+  </table>
+</section>
+{{end}}
 
 <div class="grid2">
 <section class="card">

@@ -35,10 +35,21 @@ func (a *App) selfView(w http.ResponseWriter, r *http.Request, p *Person, errMsg
 		a.fail(w, err)
 		return
 	}
+	nac, err := a.listNac(`WHERE n.person_id = ? AND n.status != ? ORDER BY n.id`, p.ID, NacRemoved)
+	if err != nil {
+		a.fail(w, err)
+		return
+	}
+	ready := false
+	for _, e := range nac {
+		ready = ready || e.Status == NacRegistered
+	}
 	v := a.view(r, "투입 인력 본인 확인", map[string]any{
 		"P": p, "Pending": pend, "Done": done,
-		"EditInfo": p.Status == StInvited || p.Status == StSubmitted,
-		"Customer": a.setting("customer_name"),
+		"EditInfo": p.Status == StInvited || (p.Status == StSubmitted && len(pend) > 0),
+		"Customer": a.setting("customer_name"), "Nac": nac, "NetReady": ready,
+		"Netmask": a.setting("ip_netmask"), "Gateway": a.setting("ip_gateway"), "DNS": a.setting("ip_dns"),
+		"New": r.URL.Query().Get("new") == "1",
 	})
 	v.Err = errMsg
 	status := http.StatusOK

@@ -41,6 +41,9 @@ var ledgers = []*Ledger{
 		Cols: []string{"번호", "성명", "소속", "교육명", "버전", "이수일", "유효기한", "방식", "기록자"}},
 	{Key: "accounts", Title: "계정 관리 대장", List: "계정",
 		Cols: []string{"번호", "성명", "소속", "시스템", "계정ID", "발급일", "회수일", "비고"}},
+	{Key: "nac_request", Title: "IP·NAC 등록/해제 신청서", List: "장비", PerRecord: true,
+		Cols:    []string{"번호", "신청구분", "MAC", "IP", "성명", "소속", "자산번호", "장비", "모델", "시리얼", "사용시작", "사용종료"},
+		Scalars: []string{"신청구분", "건수", "서브넷", "게이트웨이", "DNS"}},
 	{Key: "pledge_doc", Title: "보안서약서(개인별)", PerRecord: true,
 		Scalars: []string{"문서명", "본문", "성명", "소속", "직급", "담당업무", "서명일시", "서명일", "서명이름", "서명방식", "버전", "본문해시"}},
 	{Key: "exit_doc", Title: "철수 보안 확인서(개인별)", PerRecord: true,
@@ -66,6 +69,10 @@ func (a *App) baseScalars(r *http.Request) map[string]string {
 	if u := userFrom(r); u != nil {
 		name = u.Name
 	}
+	return a.scalarsBy(name)
+}
+
+func (a *App) scalarsBy(name string) map[string]string {
 	return map[string]string{
 		"프로젝트명": a.setting("project_name"),
 		"고객사":   a.setting("customer_name"),
@@ -158,13 +165,16 @@ func sendFile(w http.ResponseWriter, name, ctype string, b []byte) {
 	w.Write(b)
 }
 
-func (a *App) sendHWPX(w http.ResponseWriter, key, name string, data FillData) {
+func (a *App) renderHWPX(key string, data FillData) ([]byte, error) {
 	tpl, _, err := a.templateFor(key)
 	if err != nil {
-		a.fail(w, err)
-		return
+		return nil, err
 	}
-	out, err := fillHWPX(tpl, data)
+	return fillHWPX(tpl, data)
+}
+
+func (a *App) sendHWPX(w http.ResponseWriter, key, name string, data FillData) {
+	out, err := a.renderHWPX(key, data)
 	if err != nil {
 		a.fail(w, err)
 		return
@@ -178,7 +188,8 @@ func (a *App) handleExports(w http.ResponseWriter, r *http.Request) {
 		_, c, _ := a.templateFor(l.Key)
 		custom[l.Key] = c
 	}
-	a.render(w, r, "exports", "대장 출력", map[string]any{"Ledgers": ledgers, "Custom": custom, "Common": commonScalars})
+	a.render(w, r, "exports", "대장 출력", map[string]any{"Ledgers": ledgers, "Custom": custom, "Common": commonScalars,
+		"Outbox": a.outboxFiles(), "LastRun": a.setting("last_daily_run")})
 }
 
 func (a *App) handleExport(w http.ResponseWriter, r *http.Request) {
@@ -195,22 +206,26 @@ func (a *App) handleExport(w http.ResponseWriter, r *http.Request) {
 	name := l.Title + "_" + today()
 	a.audit(userFrom(r).Login, clientIP(r), "export", l.Key, r.URL.Query().Get("format"))
 	if r.URL.Query().Get("format") == "csv" {
-		var buf bytes.Buffer
-		buf.WriteString("\ufeff") // 엑셀에서 한글이 깨지지 않도록 BOM
-		cw := csv.NewWriter(&buf)
-		cw.Write(l.Cols)
-		for _, row := range rows {
-			rec := make([]string, len(l.Cols))
-			for i, c := range l.Cols {
-				rec[i] = csvSafe(row[c])
-			}
-			cw.Write(rec)
-		}
-		cw.Flush()
-		sendFile(w, name+".csv", "text/csv; charset=utf-8", buf.Bytes())
+		sendFile(w, name+".csv", "text/csv; charset=utf-8", ledgerCSV(l, rows))
 		return
 	}
 	a.sendHWPX(w, l.Key, name, FillData{Scalars: a.baseScalars(r), Lists: map[string][]map[string]string{l.List: rows}})
+}
+
+func ledgerCSV(l *Ledger, rows []map[string]string) []byte {
+	var buf bytes.Buffer
+	buf.WriteString("\ufeff") // 엑셀에서 한글이 깨지지 않도록 BOM
+	cw := csv.NewWriter(&buf)
+	cw.Write(l.Cols)
+	for _, row := range rows {
+		rec := make([]string, len(l.Cols))
+		for i, c := range l.Cols {
+			rec[i] = csvSafe(row[c])
+		}
+		cw.Write(rec)
+	}
+	cw.Flush()
+	return buf.Bytes()
 }
 
 // csvSafe는 엑셀 수식 주입(=, +, -, @로 시작하는 값)을 막는다.

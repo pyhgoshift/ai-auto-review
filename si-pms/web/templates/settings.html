@@ -8,7 +8,7 @@
   {{$v := .Vals}}
   {{range .Keys}}
     <label>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}
-    {{if or (eq .Key "check_items") (eq .Key "account_systems") (eq .Key "asset_kinds")}}
+    {{if or (eq .Key "check_items") (eq .Key "account_systems") (eq .Key "asset_kinds") (eq .Key "allowed_companies") (eq .Key "ip_pool")}}
       <textarea name="{{.Key}}" rows="6">{{index $v .Key}}</textarea>
     {{else}}<input name="{{.Key}}" value="{{index $v .Key}}">{{end}}
     </label>

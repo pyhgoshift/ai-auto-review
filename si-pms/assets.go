@@ -19,7 +19,7 @@ func (a *App) handleAssets(w http.ResponseWriter, r *http.Request) {
 		where += ` AND s.status = ?`
 		args = append(args, status)
 	} else {
-		where += ` AND s.status != 'disposed'`
+		where += ` AND s.status NOT IN ('disposed', 'released')`
 	}
 	if kind != "" {
 		where += ` AND s.kind = ?`
@@ -37,7 +37,7 @@ func (a *App) handleAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	a.render(w, r, "assets", "PC·자산 관리", map[string]any{
 		"Assets": assets, "Status": status, "Kind": kind, "Q": q,
-		"Kinds": a.settingLines("asset_kinds"), "Statuses": []string{"stock", "assigned", "repair", "disposed"},
+		"Kinds": a.settingLines("asset_kinds"), "Statuses": []string{"stock", "assigned", "repair", "released", "disposed"},
 	})
 }
 
@@ -52,14 +52,33 @@ func assetFromForm(r *http.Request, s *Asset) {
 	s.Serial = form(r, "serial")
 	s.Hostname = form(r, "hostname")
 	s.IP = form(r, "ip")
-	s.MAC = strings.ToUpper(form(r, "mac"))
+	s.MAC = form(r, "mac")
 	s.Location = form(r, "location")
 	s.Note = form(r, "note")
+}
+
+// checkAssetMAC은 MAC을 표준 표기로 바꾸고, 사용 중인 다른 장비와 겹치지 않는지 확인한다.
+func (a *App) checkAssetMAC(s *Asset) error {
+	if s.MAC == "" {
+		return nil
+	}
+	mac, err := normalizeMAC(s.MAC)
+	if err != nil {
+		return err
+	}
+	if a.macInUse(mac, s.ID) {
+		return fmt.Errorf("MAC %s 는 이미 다른 장비에 등록되어 있습니다", mac)
+	}
+	s.MAC = mac
+	return nil
 }
 
 func (a *App) insertAsset(s *Asset, actor string) (int64, error) {
 	if s.AssetNo == "" || s.Kind == "" {
 		return 0, errors.New("자산번호와 종류는 필수입니다")
+	}
+	if err := a.checkAssetMAC(s); err != nil {
+		return 0, err
 	}
 	ts := nowTS()
 	res, err := a.db.Exec(`INSERT INTO assets(asset_no, kind, model, serial, hostname, ip, mac, location, note, status, created_at, updated_at)
@@ -119,7 +138,7 @@ func (a *App) handleAssetImport(w http.ResponseWriter, r *http.Request) {
 			}
 			return ""
 		}
-		s := &Asset{AssetNo: get(0), Kind: get(1), Model: get(2), Serial: get(3), Hostname: get(4), IP: get(5), MAC: strings.ToUpper(get(6)), Location: get(7), Note: get(8)}
+		s := &Asset{AssetNo: get(0), Kind: get(1), Model: get(2), Serial: get(3), Hostname: get(4), IP: get(5), MAC: get(6), Location: get(7), Note: get(8)}
 		if s.AssetNo == "" && s.Kind == "" {
 			continue
 		}
@@ -206,6 +225,10 @@ func (a *App) handleAssetUpdate(w http.ResponseWriter, r *http.Request) {
 		redirectMsg(w, r, fmt.Sprintf("/assets/%d", s.ID), "자산번호와 종류는 필수입니다")
 		return
 	}
+	if err := a.checkAssetMAC(s); err != nil {
+		redirectMsg(w, r, fmt.Sprintf("/assets/%d", s.ID), err.Error())
+		return
+	}
 	_, err := a.db.Exec(`UPDATE assets SET asset_no = ?, kind = ?, model = ?, serial = ?, hostname = ?, ip = ?, mac = ?, location = ?, note = ?, updated_at = ? WHERE id = ?`,
 		s.AssetNo, s.Kind, s.Model, s.Serial, s.Hostname, s.IP, s.MAC, s.Location, s.Note, nowTS(), s.ID)
 	if err != nil {
@@ -240,6 +263,11 @@ func (a *App) assignAsset(r *http.Request, assetID int64, p *Person) error {
 	}
 	a.db.Exec(`INSERT INTO asset_events(asset_id, person_id, person_name, kind, at, actor) VALUES(?, ?, ?, 'assign', ?, ?)`,
 		assetID, p.ID, p.Name, nowTS(), u.Name)
+	if p.Status == StActive {
+		if err := a.requestNAC(p.ID, assetID, u.Name); err != nil {
+			return fmt.Errorf("지급은 기록했지만 IP·NAC 요청 실패: %v", err)
+		}
+	}
 	a.audit(u.Login, clientIP(r), "asset_assign", fmt.Sprintf("asset:%d", assetID), assetNo+" → "+p.Name)
 	return nil
 }
@@ -274,6 +302,7 @@ func (a *App) handleAssetReturn(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err)
 		return
 	}
+	a.releaseNAC(s.ID, u.Name)
 	a.db.Exec(`INSERT INTO asset_events(asset_id, person_id, person_name, kind, at, actor, note) VALUES(?, ?, ?, 'return', ?, ?, ?)`,
 		s.ID, s.PersonID.Int64, s.PersonName, nowTS(), u.Name, note)
 	a.audit(u.Login, clientIP(r), "asset_return", fmt.Sprintf("asset:%d", s.ID), s.AssetNo+" ← "+s.PersonName)

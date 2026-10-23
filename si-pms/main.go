@@ -31,6 +31,7 @@ func main() {
 	}
 	app := &App{db: db, dataDir: *dataDir, secureCookie: *cert != ""}
 	app.loadTemplates()
+	app.startScheduler()
 
 	pw, err := app.ensureAdmin()
 	if err != nil {
