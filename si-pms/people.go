@@ -67,7 +67,7 @@ func (a *App) companies() []string {
 }
 
 func (a *App) handlePersonNewPage(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, "person_new", "투입 요청 등록", map[string]any{"Companies": a.companies(), "P": &Person{}})
+	a.render(w, r, "person_new", "대리 등록", map[string]any{"Companies": a.companies(), "P": &Person{}})
 }
 
 func personFromForm(r *http.Request, p *Person) {
@@ -112,7 +112,7 @@ func (a *App) handlePersonCreate(w http.ResponseWriter, r *http.Request) {
 	p := &Person{}
 	personFromForm(r, p)
 	if err := validatePerson(p); err != nil {
-		a.renderErr(w, r, "person_new", "투입 요청 등록", err.Error(), map[string]any{"Companies": a.companies(), "P": p})
+		a.renderErr(w, r, "person_new", "대리 등록", err.Error(), map[string]any{"Companies": a.companies(), "P": p})
 		return
 	}
 	ts := nowTS()

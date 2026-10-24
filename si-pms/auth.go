@@ -162,7 +162,7 @@ func (a *App) requireUser(next http.HandlerFunc) http.HandlerFunc {
 				http.Error(w, "요청이 만료되었습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.", http.StatusForbidden)
 				return
 			}
-			if !u.IsAdmin() && r.URL.Path != "/password" {
+			if !u.IsAdmin() && r.URL.Path != "/password" && r.URL.Path != "/profile" {
 				http.Error(w, "조회 전용 계정입니다.", http.StatusForbidden)
 				return
 			}
@@ -222,7 +222,20 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handlePasswordPage(w http.ResponseWriter, r *http.Request) {
-	a.render(w, r, "password", "비밀번호 변경", nil)
+	a.render(w, r, "password", "내 정보", nil)
+}
+
+// handleProfile은 출력물의 작성자·승인자로 찍히는 표시 이름을 바꾼다.
+func (a *App) handleProfile(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r)
+	name := form(r, "name")
+	if name == "" || len([]rune(name)) > 30 {
+		redirectMsg(w, r, "/password", "이름은 1~30자로 입력해 주세요")
+		return
+	}
+	a.db.Exec(`UPDATE users SET name = ? WHERE id = ?`, name, u.ID)
+	a.audit(u.Login, clientIP(r), "profile_update", "", u.Name+" → "+name)
+	redirectMsg(w, r, "/password", "이름을 "+name+"(으)로 바꿨습니다. 이후 출력물의 작성자·승인자에 이 이름이 들어갑니다")
 }
 
 func (a *App) handlePassword(w http.ResponseWriter, r *http.Request) {

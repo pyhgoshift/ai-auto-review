@@ -15,7 +15,7 @@
 <tr><th>대장</th><th>출력</th><th>양식</th>{{if $admin}}<th>고객사 양식으로 교체</th>{{end}}</tr>
 {{range .Ledgers}}
 <tr>
-  <td><b>{{.Title}}</b>{{if .PerRecord}}<br><small class="muted">인력 상세 화면에서 개인별로 출력</small>{{end}}</td>
+  <td><b>{{.Title}}</b>{{if eq .Key "nac_request"}}<br><small class="muted"><a href="/nac">IP·NAC</a> 화면에서 등록·변경·해제별로 출력</small>{{else if .PerRecord}}<br><small class="muted">인력 상세 화면에서 개인별로 출력</small>{{end}}</td>
   <td>{{if not .PerRecord}}<a class="btn" href="/exports/{{.Key}}">HWP</a> <a class="btn" href="/exports/{{.Key}}?format=csv">CSV(엑셀)</a>{{end}}</td>
   <td>{{if index $custom .Key}}<span class="badge active">고객사 양식</span>{{else}}<span class="badge">기본 양식</span>{{end}}
       <a href="/exports/{{.Key}}/template">양식 받기</a></td>

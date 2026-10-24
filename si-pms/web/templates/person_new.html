@@ -1,7 +1,14 @@
 {{define "content"}}
 {{with .D}}
-<h1>투입 요청 등록</h1>
-<p class="muted">기본 정보만 입력하면 됩니다. 저장하면 투입 인력에게 보낼 <b>개인 입력 링크</b>가 만들어집니다. 연락처·서약·교육 확인은 본인이 직접 입력합니다.</p>
+<h1>대리 등록 <small class="muted">QR로 등록할 수 없는 경우</small></h1>
+<div class="card">
+  <p>원칙은 <b>투입 인력이 현장 QR로 직접 등록</b>하는 것입니다. 휴대폰이 서버에 접속되지 않는 등 QR 등록이 불가능할 때만 PMO가 대신 등록합니다.</p>
+  <ol>
+    <li>아래 기본 정보를 입력하고 저장하면 <b>개인 입력 링크</b>가 만들어집니다. 업무 PC 브라우저로 열 수 있으면 본인이 링크로 동의·서약합니다.</li>
+    <li>링크도 쓸 수 없으면 종이 서약서를 받고, 상세 화면의 <b>"서면 서약·집합 교육 결과 직접 기록"</b>으로 문서 3종을 기록한 뒤 승인합니다.</li>
+    <li>반입 노트북은 <a href="/assets/new">PC·자산 등록</a>에서 종류 "노트북(반입)"과 MAC을 입력해 등록한 뒤 상세 화면에서 지급합니다.</li>
+  </ol>
+</div>
 <form method="post" action="/people/new" class="card form">
   <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
   <div class="cols">

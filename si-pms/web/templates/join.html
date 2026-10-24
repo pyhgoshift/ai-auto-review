@@ -21,8 +21,8 @@
     </div>
 
     <h2>2. 업무에 사용할 PC</h2>
-    <label class="check"><input type="radio" name="device" value="byod" {{if ne .Device "company"}}checked{{end}}> 개인/회사 노트북을 <b>반입</b>해서 사용</label>
-    <label class="check"><input type="radio" name="device" value="company" {{if eq .Device "company"}}checked{{end}}> 현장에서 <b>지급 PC</b>를 받아 사용 (아래는 비워 두세요)</label>
+    <label class="check"><input type="radio" name="device" value="byod" {{if ne .Device "company"}}checked{{end}}> <span>개인/회사 노트북을 <b>반입</b>해서 사용</span></label>
+    <label class="check"><input type="radio" name="device" value="company" {{if eq .Device "company"}}checked{{end}}> <span>현장에서 <b>지급 PC</b>를 받아 사용 (아래는 비워 두세요)</span></label>
     <div class="cols">
       <label>유선 랜 MAC 주소 (반입 시 *)<input name="mac" value="{{with .Dev}}{{.MAC}}{{end}}" placeholder="00-1A-2B-3C-4D-5E" autocomplete="off"></label>
       <label>시리얼 번호 (반입 시 *)<input name="serial" value="{{with .Dev}}{{.Serial}}{{end}}"></label>

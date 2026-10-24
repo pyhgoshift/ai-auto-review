@@ -120,6 +120,10 @@ func (a *App) handleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 		fail("연락처, 투입일, 철수예정일은 필수입니다")
 		return
 	}
+	if p.EndDate < today() {
+		fail("철수예정일이 이미 지났습니다. 날짜를 확인하거나 PMO에게 문의해 주세요")
+		return
+	}
 	if allowed := a.settingLines("allowed_companies"); len(allowed) > 0 && !contains(allowed, p.Company) {
 		fail("등록이 허용된 소속사가 아닙니다. 소속사 이름을 목록에서 선택해 주세요")
 		return

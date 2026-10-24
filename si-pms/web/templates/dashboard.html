@@ -4,7 +4,7 @@
 <div class="tiles">
   <a class="tile" href="/people?status=active"><b>{{index .Counts "active"}}</b><span>투입중</span></a>
   <a class="tile hl" href="/people?status=submitted"><b>{{index .Counts "submitted"}}</b><span>승인대기</span></a>
-  <a class="tile" href="/people?status=invited"><b>{{index .Counts "invited"}}</b><span>투입요청(입력 전)</span></a>
+  <a class="tile" href="/people?status=invited"><b>{{index .Counts "invited"}}</b><span>입력 대기(대리 등록·반려)</span></a>
   <a class="tile" href="/people?status=offboarding"><b>{{index .Counts "offboarding"}}</b><span>철수진행</span></a>
   <a class="tile" href="/assets?status=assigned"><b>{{index .AssetCounts "assigned"}}</b><span>지급 PC·자산</span></a>
   <a class="tile" href="/nac"><b>{{.NacReg}} / {{.NacRem}}</b><span>NAC 등록 / 해제 대기</span></a>

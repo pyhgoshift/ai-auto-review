@@ -135,3 +135,6 @@ summary { cursor: pointer; color: var(--primary); }
   .noprint { display: none !important; }
   .poster { border: 0; }
 }
+input[type=radio] { width: auto; }
+label.check { align-items: flex-start; }
+label.check > input { margin-top: 3px; flex: none; }

@@ -7,7 +7,7 @@ import (
 
 // 인력 상태 흐름
 //
-//	invited(투입요청) → submitted(본인입력 완료) → active(투입) → offboarding(철수중) → offboarded(철수완료)
+//	invited(입력대기: PMO 대리 등록 또는 반려) → submitted(본인입력 완료) → active(투입) → offboarding(철수중) → offboarded(철수완료)
 //	submitted → invited(반려)
 const (
 	StInvited     = "invited"
@@ -18,7 +18,7 @@ const (
 )
 
 var statusLabel = map[string]string{
-	StInvited:     "투입요청",
+	StInvited:     "입력대기",
 	StSubmitted:   "승인대기",
 	StActive:      "투입중",
 	StOffboarding: "철수진행",
@@ -444,6 +444,9 @@ func (a *App) approvalChecks(p *Person) ([]CheckItem, bool, error) {
 	var items []CheckItem
 	items = append(items, CheckItem{"동의·서약·교육 완료", len(pend) == 0, fmt.Sprintf("미이행 %d건", len(pend))})
 	items = append(items, CheckItem{"투입일·철수예정일", p.StartDate != "" && p.EndDate != "", ""})
+	if p.EndDate != "" && p.EndDate < today() {
+		items = append(items, CheckItem{"철수예정일이 지나지 않음", false, "철수예정일 " + p.EndDate})
+	}
 	if allowed := a.settingLines("allowed_companies"); len(allowed) > 0 {
 		items = append(items, CheckItem{"허용된 소속사", contains(allowed, p.Company), p.Company})
 	}

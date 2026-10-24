@@ -65,7 +65,7 @@
       <form method="post" action="/people/{{$p.ID}}/purge"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="danger" data-confirm="연락처·이메일·생년월일·좌석·비고를 영구 삭제합니다. 성명·소속·이력·서명 기록은 감사 증빙으로 남습니다.">개인정보 파기</button></form>
     {{end}}
     {{if or (eq $p.Status "invited") (eq $p.Status "submitted")}}
-      <form method="post" action="/people/{{$p.ID}}/delete"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="link danger" data-confirm="이 투입 요청을 삭제할까요?">요청 삭제</button></form>
+      <form method="post" action="/people/{{$p.ID}}/delete"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="link danger" data-confirm="이 등록 건을 삭제할까요?">등록 삭제</button></form>
     {{end}}
   </div>
   {{end}}

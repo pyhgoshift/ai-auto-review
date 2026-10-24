@@ -2,3 +2,6 @@ data/
 /si-pms
 /si-pms.exe
 *.db
+uat-out/
+uat-data*/
+uat-server*.log

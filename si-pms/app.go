@@ -170,6 +170,7 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("POST /logout", a.handleLogout)
 	mux.HandleFunc("GET /password", a.requireUser(a.handlePasswordPage))
 	mux.HandleFunc("POST /password", a.requireUser(a.handlePassword))
+	mux.HandleFunc("POST /profile", a.requireUser(a.handleProfile))
 
 	// 투입 인력 본인용 (로그인 없이 개인 링크로 접근)
 	mux.HandleFunc("GET /s/{token}", a.handleSelfPage)

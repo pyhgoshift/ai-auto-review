@@ -131,12 +131,6 @@ func (p *ipPool) each(f func(n uint32) bool) {
 	}
 }
 
-func (p *ipPool) size() int {
-	total := 0
-	p.each(func(uint32) bool { total++; return true })
-	return total
-}
-
 type queryer interface {
 	Query(query string, args ...any) (*sql.Rows, error)
 }

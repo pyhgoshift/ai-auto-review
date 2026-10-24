@@ -328,3 +328,40 @@ func TestJobsRecordedAndBackupRetention(t *testing.T) {
 		t.Fatal("감사 로그에 영문 작업 코드 노출")
 	}
 }
+
+func TestPastEndDateBlocked(t *testing.T) {
+	app, srv := newTestApp(t)
+	admin := loginAdmin(t, app, srv)
+	phone := newClient(t, srv)
+	v := joinForm(app, "정테스트", "010-4", "")
+	v.Set("start_date", "2026-01-01")
+	v.Set("end_date", addDays(today(), -1))
+	if code, body := postStatus(phone, "/join", v); code != 400 || !strings.Contains(body, "철수예정일이 이미 지났습니다") {
+		t.Fatalf("지난 철수예정일 QR 등록 통과: %d", code)
+	}
+	// 등록 후 철수예정일이 지난 경우(대기 중 시간 경과): 점검 실패, 승인 거절
+	v.Set("end_date", today())
+	phone.post("/join", v)
+	app.db.Exec(`UPDATE people SET end_date = ? WHERE name = '정테스트'`, addDays(today(), -1))
+	p := app.listPeopleMust(t, `WHERE name = '정테스트'`)
+	if _, ready, _ := app.approvalChecks(p); ready {
+		t.Fatal("지난 철수예정일인데 점검 통과")
+	}
+	admin.get("/", 200)
+	body := admin.post(fmt.Sprintf("/people/%d/approve", p.ID), url.Values{"back": {"/"}})
+	mustContain(t, body, "철수예정일", "이미 지났습니다")
+	if p, _ = app.getPerson(p.ID); p.Status != StSubmitted {
+		t.Fatalf("승인됨: %s", p.Status)
+	}
+}
+
+func TestProfileNameUsedInExports(t *testing.T) {
+	app, srv := newTestApp(t)
+	admin := loginAdmin(t, app, srv)
+	admin.get("/password", 200)
+	mustContain(t, admin.post("/profile", url.Values{"name": {"박피엠"}}), "박피엠(으)로 바꿨습니다")
+	checkHWPXOutput(t, admin.download("/exports/people"), []string{"작성자: 박피엠"})
+	if strings.Contains(admin.get("/audit", 200), ">profile_update<") {
+		t.Fatal("감사 로그에 영문 코드 노출")
+	}
+}

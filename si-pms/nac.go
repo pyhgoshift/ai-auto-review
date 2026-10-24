@@ -126,6 +126,10 @@ func (a *App) activatePerson(p *Person, approver string) error {
 	if p.StartDate == "" {
 		return errors.New("투입일이 없습니다")
 	}
+	// 이미 끝난 투입을 승인하면 만료된 NAC 등록이 나간다
+	if p.EndDate != "" && p.EndDate < today() {
+		return fmt.Errorf("철수예정일(%s)이 이미 지났습니다. 철수예정일을 고친 뒤 승인해 주세요", p.EndDate)
+	}
 	assets, err := a.listAssets(`WHERE s.person_id = ? AND s.mac != ''`, p.ID)
 	if err != nil {
 		return err

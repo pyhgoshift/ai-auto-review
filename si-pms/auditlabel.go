@@ -9,10 +9,10 @@ import (
 // 코드로 저장해 두어야 나중에 문구를 바꿔도 이전 기록과 함께 검색·집계할 수 있다.
 
 var auditActionLabel = map[string]string{
-	"login": "로그인", "login_fail": "로그인 실패", "password_change": "비밀번호 변경",
-	"person_create": "투입 요청 등록", "person_update": "인력 정보 수정", "person_approve": "투입 승인",
+	"login": "로그인", "profile_update": "이름 변경", "login_fail": "로그인 실패", "password_change": "비밀번호 변경",
+	"person_create": "대리 등록", "person_update": "인력 정보 수정", "person_approve": "투입 승인",
 	"person_reject": "반려", "person_offboard": "철수 시작", "person_complete": "철수 완료",
-	"person_purge": "개인정보 파기", "person_delete": "투입 요청 삭제", "badge_return": "출입증 반납",
+	"person_purge": "개인정보 파기", "person_delete": "등록 삭제", "badge_return": "출입증 반납",
 	"link_issue": "개인 링크 발급", "self_join": "QR 셀프 등록", "self_submit": "본인 제출",
 	"ack_offline": "서면·집합 이행 기록", "ack_bulk": "서면·집합 일괄 기록",
 	"account_issue": "계정 발급", "account_revoke": "계정 회수",

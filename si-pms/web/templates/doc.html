@@ -14,11 +14,11 @@
     </select></label>
     <label>유효기간(개월, 0=없음)<input type="number" min="0" name="valid_months" value="{{$d.ValidMonths}}"></label>
     <label>표시 순서<input type="number" name="sort" value="{{$d.Sort}}"></label>
-    <label class="check"><input type="checkbox" name="active" value="1" {{if $d.Active}}checked{{end}}> 사용</label>
+    <label class="check"><input type="checkbox" name="active" value="1" {{if $d.Active}}checked{{end}}> <span>사용</span></label>
   </div>
   <label>제목<input name="title" value="{{$d.Title}}" required></label>
   <label>본문<textarea name="body" rows="16" required>{{$d.Body}}</textarea></label>
-  {{if and $admin (not .New)}}<label class="check"><input type="checkbox" name="bump" value="1"> 내용이 바뀌어 <b>전원 재서명</b>이 필요함 (버전 v{{$d.Version}} → 다음 버전)</label>{{end}}
+  {{if and $admin (not .New)}}<label class="check"><input type="checkbox" name="bump" value="1"> <span>내용이 바뀌어 <b>전원 재서명</b>이 필요함 (버전 v{{$d.Version}} → 다음 버전)</span></label>{{end}}
   {{if $admin}}<button class="primary">저장</button>{{end}}
   </fieldset>
 </form>

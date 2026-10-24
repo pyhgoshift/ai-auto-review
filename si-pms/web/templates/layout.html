@@ -26,7 +26,7 @@
     {{end}}
   </nav>
   <div class="me">
-    <a href="/password">{{.User.Name}}{{if not .User.IsAdmin}} (조회전용){{end}}</a>
+    <a href="/password" title="내 정보·비밀번호">{{.User.Name}}{{if not .User.IsAdmin}} (조회전용){{end}}</a>
     <form method="post" action="/logout" class="inline"><button class="link">로그아웃</button></form>
   </div>
 </header>

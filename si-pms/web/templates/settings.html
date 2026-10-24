@@ -9,7 +9,7 @@
   <h2>{{$g}}</h2>
   {{range $keys}}{{if eq .Group $g}}
     {{if eq .Kind "check"}}
-      <label class="check"><input type="checkbox" name="{{.Key}}" value="1" {{if eq (index $v .Key) "1"}}checked{{end}}> {{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}</label>
+      <label class="check"><input type="checkbox" name="{{.Key}}" value="1" {{if eq (index $v .Key) "1"}}checked{{end}}> <span>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}</span></label>
     {{else}}
       <label>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}
       {{if eq .Kind "lines"}}<textarea name="{{.Key}}" rows="{{if eq .Key "nac_csv_columns"}}9{{else}}5{{end}}">{{index $v .Key}}</textarea>{{else}}<input name="{{.Key}}" value="{{index $v .Key}}">{{end}}
