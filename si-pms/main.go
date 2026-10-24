@@ -16,18 +16,25 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "수신 주소")
+	addr := flag.String("addr", ":8080", "수신 주소(예: :8080)")
 	dataDir := flag.String("data", "data", "데이터 폴더(DB, 업로드 양식, 백업)")
 	cert := flag.String("cert", "", "TLS 인증서 파일(선택)")
 	key := flag.String("key", "", "TLS 개인키 파일(선택)")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "사용법: si-pms [옵션]")
+		fmt.Fprintln(os.Stderr, "SI 프로젝트 투입 인력·PC·보안 통합 관리 서버를 실행합니다.")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "옵션:")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	if err := os.MkdirAll(*dataDir, 0o700); err != nil {
-		log.Fatal(err)
+		log.Fatalf("데이터 폴더를 만들 수 없습니다: %v", err)
 	}
 	db, err := openDB(filepath.Join(*dataDir, "pms.db"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("DB를 열 수 없습니다: %v", err)
 	}
 	app := &App{db: db, dataDir: *dataDir, secureCookie: *cert != ""}
 	app.loadTemplates()
@@ -35,7 +42,7 @@ func main() {
 
 	pw, err := app.ensureAdmin()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("초기 관리자 계정을 만들 수 없습니다: %v", err)
 	}
 	if pw != "" {
 		fmt.Println("==============================================")
@@ -55,7 +62,7 @@ func main() {
 	}
 	log.Printf("si-pms 시작: %s (데이터: %s)", *addr, *dataDir)
 	if *cert != "" {
-		log.Fatal(srv.ListenAndServeTLS(*cert, *key))
+		log.Fatalf("서버 종료: %v", srv.ListenAndServeTLS(*cert, *key))
 	}
-	log.Fatal(srv.ListenAndServe())
+	log.Fatalf("서버 종료: %v", srv.ListenAndServe())
 }

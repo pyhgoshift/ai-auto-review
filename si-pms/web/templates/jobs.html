@@ -1,0 +1,26 @@
+{{define "content"}}
+{{with .D}}
+<div class="head"><h1>자동 작업</h1>
+  <form method="post" action="/jobs/run" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><input type="hidden" name="job" value="all"><button data-confirm="모든 자동 작업을 지금 실행할까요?">전체 지금 실행</button></form>
+</div>
+<p class="muted">서버가 켜져 있으면 10분마다 확인해서 때가 된 작업을 실행합니다. 실패한 작업은 다음 확인 때 다시 시도하고, 대시보드에도 알림이 뜹니다.</p>
+{{range .Jobs}}
+<section class="card">
+  <div class="head">
+    <h2>{{.Name}} <small class="muted">{{.Every}}</small>
+      {{if .Last}}{{if .Last.OK}}<span class="badge active">정상</span>{{else if .Last.FinishedAt}}<span class="badge offboarding">실패</span>{{else}}<span class="badge submitted">실행 중</span>{{end}}{{else}}<span class="badge">실행 기록 없음</span>{{end}}</h2>
+    <form method="post" action="/jobs/run" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><input type="hidden" name="job" value="{{.Key}}"><button>지금 실행</button></form>
+  </div>
+  <p>{{.Desc}}</p>
+  <p class="muted">마지막 성공: {{if .LastOK}}{{.LastOK.StartedAt}} — {{.LastOK.Message}}{{else}}없음{{end}}</p>
+  {{if .History}}
+  <details><summary>최근 실행 {{len .History}}건</summary>
+    <table><tr><th>시작</th><th>종료</th><th>결과</th><th>실행자</th><th>내용</th></tr>
+    {{range .History}}<tr><td>{{.StartedAt}}</td><td>{{.FinishedAt}}</td><td class="{{if .OK}}ok{{else}}danger{{end}}">{{if .OK}}성공{{else}}실패{{end}}</td><td>{{.Actor}}</td><td>{{.Message}}</td></tr>{{end}}
+    </table>
+  </details>
+  {{end}}
+</section>
+{{end}}
+{{end}}
+{{end}}

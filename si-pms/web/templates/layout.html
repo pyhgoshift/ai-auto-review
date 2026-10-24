@@ -20,6 +20,7 @@
     <a href="/exports" {{if hasPrefix .Path "/exports"}}class="on"{{end}}>대장 출력</a>
     {{if .User.IsAdmin}}
     <a href="/qr" {{if hasPrefix .Path "/qr"}}class="on"{{end}}>등록 QR</a>
+    <a href="/jobs" {{if hasPrefix .Path "/jobs"}}class="on"{{end}}>자동 작업</a>
     <a href="/settings" {{if hasPrefix .Path "/settings"}}class="on"{{end}}>설정</a>
     <a href="/audit" {{if hasPrefix .Path "/audit"}}class="on"{{end}}>감사로그</a>
     {{end}}

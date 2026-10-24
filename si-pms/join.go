@@ -187,7 +187,7 @@ func (a *App) handleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 	if device == "byod" {
 		res, err := tx.Exec(`INSERT INTO assets(asset_no, kind, model, serial, hostname, mac, status, person_id, assigned_at, note, created_at, updated_at)
 			VALUES(?, ?, ?, ?, ?, ?, 'assigned', ?, ?, '본인 반입', ?, ?)`,
-			fmt.Sprintf("BYOD-%04d", id), byodKind, dev.Model, dev.Serial, dev.Hostname, dev.MAC, id, today(), ts, ts)
+			fmt.Sprintf("반입-%04d", id), byodKind, dev.Model, dev.Serial, dev.Hostname, dev.MAC, id, today(), ts, ts)
 		if err != nil {
 			a.fail(w, err)
 			return
@@ -203,7 +203,7 @@ func (a *App) handleJoinSubmit(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err)
 		return
 	}
-	a.audit("본인:"+p.Name, clientIP(r), "self_join", fmt.Sprintf("person:%d", id), p.Company+" / "+device)
+	a.audit("본인:"+p.Name, clientIP(r), "self_join", fmt.Sprintf("person:%d", id), p.Company+" / "+map[string]string{"byod": "반입 노트북", "company": "지급 PC"}[device])
 	http.SetCookie(w, &http.Cookie{Name: selfCookie, Value: token, Path: "/", MaxAge: 400 * 24 * 3600,
 		HttpOnly: true, Secure: a.secureCookie, SameSite: http.SameSiteLaxMode})
 	http.Redirect(w, r, "/s/"+token+"?new=1", http.StatusSeeOther)

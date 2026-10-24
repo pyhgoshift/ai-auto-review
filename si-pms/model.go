@@ -406,6 +406,12 @@ func (a *App) alerts() ([]Alert, error) {
 	if nacRem > 0 {
 		out = append(out, Alert{"danger", fmt.Sprintf("NAC 해제 대기 %d건 — 해제 파일 전달 후 완료 처리", nacRem), "/nac"})
 	}
+	if upd, err := a.nacPending(NacKindUpdate); err == nil && len(upd) > 0 {
+		out = append(out, Alert{"danger", fmt.Sprintf("NAC 만료일 변경 대기 %d건 — 철수예정일이 바뀌었습니다. 변경 파일을 전달하지 않으면 예전 만료일에 네트워크가 끊깁니다", len(upd)), "/nac"})
+	}
+	for _, name := range a.failedJobs() {
+		out = append(out, Alert{"danger", "자동 작업 실패: " + name + " — 자동 작업 화면에서 원인을 확인하세요", "/jobs"})
+	}
 	if total, used, err := a.ipPoolStatus(); err == nil && total > 0 && total-used < 5 {
 		out = append(out, Alert{"warn", fmt.Sprintf("남은 IP %d개 — 대역 추가 필요", total-used), "/settings"})
 	} else if total == 0 {

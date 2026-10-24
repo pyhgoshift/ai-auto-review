@@ -116,7 +116,8 @@ func (a *App) handleSelfSubmit(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 	ts := nowTS()
 	for _, d := range pend {
-		if _, err := tx.Exec(`INSERT INTO acks(person_id, document_id, version, title, body, body_sha256, signed_name, method, acked_at, ip, recorded_by)
+		// 제출 버튼을 두 번 눌러도 같은 날 같은 문서 서명은 한 번만 남는다
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO acks(person_id, document_id, version, title, body, body_sha256, signed_name, method, acked_at, ip, recorded_by)
 			VALUES(?, ?, ?, ?, ?, ?, ?, 'self', ?, ?, '본인')`,
 			p.ID, d.ID, d.Version, d.Title, d.Body, sha256Hex(d.Title+"\n"+d.Body), form(r, "signature"), ts, clientIP(r)); err != nil {
 			a.fail(w, err)
@@ -135,6 +136,7 @@ func (a *App) handleSelfSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.audit("본인:"+p.Name, clientIP(r), "self_submit", fmt.Sprintf("person:%d", p.ID), fmt.Sprintf("서명 %d건", len(pend)))
+	a.tryCompleteOffboarding(p.ID, "본인:"+p.Name)
 	if editInfo {
 		p.Status = StSubmitted
 	}

@@ -123,7 +123,7 @@ func TestQRJoinToNetworkLifecycle(t *testing.T) {
 
 	// 철수예정일 경과 → 자동 철수: 반입 장비 반출, NAC 해제 요청
 	app.db.Exec(`UPDATE people SET end_date = '2026-01-01' WHERE name = '김민수'`)
-	app.runDaily(true)
+	app.runDueJobs(true)
 	p := app.listPeopleMust(t, `WHERE name = '김민수'`)
 	if p.Status != StOffboarding {
 		t.Fatal("자동 철수 안 됨", p.Status)

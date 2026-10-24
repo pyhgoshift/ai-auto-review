@@ -310,7 +310,11 @@ func (a *App) handleAssetReturn(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(back, "/people/") {
 		back = fmt.Sprintf("/assets/%d", s.ID)
 	}
-	redirectMsg(w, r, back, s.AssetNo+" 반납을 기록했습니다")
+	msg := s.AssetNo + " 반납을 기록했습니다"
+	if a.tryCompleteOffboarding(s.PersonID.Int64, u.Name) {
+		msg += ". 철수 체크리스트가 모두 채워져 " + s.PersonName + " 철수 완료로 자동 처리했습니다"
+	}
+	redirectMsg(w, r, back, msg)
 }
 
 func (a *App) handleAssetCheck(w http.ResponseWriter, r *http.Request) {

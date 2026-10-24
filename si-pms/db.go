@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -141,9 +143,20 @@ CREATE TABLE IF NOT EXISTS nac_entries(
 	requested_at TEXT NOT NULL,
 	registered_at TEXT NOT NULL DEFAULT '',
 	removal_requested_at TEXT NOT NULL DEFAULT '',
-	removed_at TEXT NOT NULL DEFAULT ''
+	removed_at TEXT NOT NULL DEFAULT '',
+	expire_sent TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS nac_status ON nac_entries(status);
+CREATE TABLE IF NOT EXISTS job_runs(
+	id INTEGER PRIMARY KEY,
+	job TEXT NOT NULL,
+	started_at TEXT NOT NULL,
+	finished_at TEXT NOT NULL DEFAULT '',
+	ok INTEGER NOT NULL DEFAULT 0,
+	message TEXT NOT NULL DEFAULT '',
+	actor TEXT NOT NULL DEFAULT '자동'
+);
+CREATE INDEX IF NOT EXISTS job_runs_job ON job_runs(job, started_at);
 CREATE TABLE IF NOT EXISTS audit(
 	id INTEGER PRIMARY KEY,
 	at TEXT NOT NULL,
@@ -179,7 +192,13 @@ var defaultSettings = map[string]string{
 	"ip_gateway":        "",
 	"ip_dns":            "",
 	"base_url":          "",
-	"last_daily_run":    "",
+	"ip_reserved":       "",
+	// NAC 등록 파일 열 구성. 한 줄에 "필드" 또는 "필드=파일 머리글". 고객사 NAC 가져오기 양식에 맞춘다.
+	"nac_csv_columns":           "MAC\nIP\n성명\n소속\n장비\n시리얼\n사용시작\n만료일",
+	"nac_expire_buffer_days":    "0",
+	"nac_role":                  "",
+	"auto_complete_offboarding": "1",
+	"backup_keep":               "8",
 }
 
 type seedDoc struct {
@@ -226,7 +245,7 @@ func openDB(path string) (*sql.DB, error) {
 	// 단일 연결로 쓰기 경합을 없앤다. 수십~수백 명 규모 프로젝트에는 충분하다.
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(schema); err != nil {
-		return nil, fmt.Errorf("schema: %w", err)
+		return nil, fmt.Errorf("DB 스키마 생성 실패: %w", err)
 	}
 	for k, v := range defaultSettings {
 		if _, err := db.Exec(`INSERT OR IGNORE INTO settings(key, value) VALUES(?, ?)`, k, v); err != nil {
@@ -235,6 +254,9 @@ func openDB(path string) (*sql.DB, error) {
 	}
 	// QR 등록코드는 설치마다 무작위로 만든다(설정 화면에서 재발급 가능)
 	if _, err := db.Exec(`INSERT OR IGNORE INTO settings(key, value) VALUES('join_code', ?)`, randToken(9)); err != nil {
+		return nil, err
+	}
+	if err := migrate(db); err != nil {
 		return nil, err
 	}
 	var n int
@@ -250,6 +272,51 @@ func openDB(path string) (*sql.DB, error) {
 		}
 	}
 	return db, nil
+}
+
+// migrate는 이전 버전 DB에 새 열과 무결성 제약을 더한다. 여러 번 실행해도 안전하다.
+func migrate(db *sql.DB) error {
+	// 이전 버전 nac_entries에는 expire_sent 열이 없다
+	var has int
+	db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('nac_entries') WHERE name = 'expire_sent'`).Scan(&has)
+	if has == 0 {
+		if _, err := db.Exec(`ALTER TABLE nac_entries ADD COLUMN expire_sent TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("마이그레이션(expire_sent): %w", err)
+		}
+	}
+
+	// 같은 사람·문서·버전의 같은 날 서명은 한 번만 남긴다(제출 버튼 두 번 누름 등).
+	// 제약을 걸기 전에 이미 쌓인 중복을 정리하고, 정리한 건수를 감사 로그에 남긴다.
+	res, err := db.Exec(`DELETE FROM acks WHERE id NOT IN (
+		SELECT MIN(id) FROM acks GROUP BY person_id, document_id, version, substr(acked_at, 1, 10))`)
+	if err != nil {
+		return fmt.Errorf("마이그레이션(서명 중복 정리): %w", err)
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		db.Exec(`INSERT INTO audit(at, actor, action, detail) VALUES(?, '시스템', 'migrate', ?)`,
+			nowTS(), fmt.Sprintf("같은 날 중복 서명 기록 %d건 정리", n))
+	}
+
+	stmts := []struct{ name, sql string }{
+		{"서명 중복 방지", `CREATE UNIQUE INDEX IF NOT EXISTS acks_once_per_day ON acks(person_id, document_id, version, substr(acked_at, 1, 10))`},
+		// 사용 중(해제 완료 전)인 IP는 한 장비에만 배정된다
+		{"IP 중복 방지", `CREATE UNIQUE INDEX IF NOT EXISTS nac_ip_in_use ON nac_entries(ip) WHERE status != 'removed' AND ip != ''`},
+		// 한 장비에는 진행 중인 NAC 요청이 하나뿐이다
+		{"NAC 요청 중복 방지", `CREATE UNIQUE INDEX IF NOT EXISTS nac_asset_active ON nac_entries(asset_id) WHERE status IN ('requested', 'registered')`},
+	}
+	for _, st := range stmts {
+		if _, err := db.Exec(st.sql); err != nil {
+			// 기존 데이터에 이미 중복이 있으면 제약을 걸 수 없다. 서버는 띄우되 운영자가 알 수 있게 남긴다.
+			log.Printf("경고: %s 제약을 적용하지 못했습니다(기존 데이터 중복). IP·NAC 화면에서 중복을 정리한 뒤 다시 시작하세요: %v", st.name, err)
+			db.Exec(`INSERT INTO audit(at, actor, action, detail) VALUES(?, '시스템', 'migrate', ?)`, nowTS(), st.name+" 제약 적용 실패: 기존 데이터 중복")
+		}
+	}
+	return nil
+}
+
+// isUniqueErr는 SQLite 유일성 제약 위반 오류인지 확인한다.
+func isUniqueErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
 }
 
 func nowTS() string { return time.Now().Format("2006-01-02 15:04:05") }
@@ -299,6 +366,15 @@ func (a *App) settingInt(key string, def int) int {
 	var n int
 	if _, err := fmt.Sscanf(a.setting(key), "%d", &n); err != nil || n <= 0 {
 		return def
+	}
+	return n
+}
+
+// settingInt0은 0 이상의 정수 설정값을 읽는다(형식이 틀리면 0).
+func (a *App) settingInt0(key string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(a.setting(key)))
+	if err != nil || n < 0 {
+		return 0
 	}
 	return n
 }

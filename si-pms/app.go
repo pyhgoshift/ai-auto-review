@@ -12,6 +12,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 //go:embed web/templates/*.html
@@ -25,6 +26,8 @@ type App struct {
 	dataDir      string
 	pages        map[string]*template.Template
 	secureCookie bool
+	ipMu         sync.Mutex // IP 배정 직렬화
+	jobMu        sync.Mutex // 자동 작업 동시 실행 방지
 }
 
 type View struct {
@@ -53,6 +56,8 @@ var funcs = template.FuncMap{
 	"date":           func(s string) string { return firstN(s, 10) },
 	"hasPrefix":      strings.HasPrefix,
 	"nacStatusLabel": func(s string) string { return nacStatusLabel[s] },
+	"auditLabel":     auditLabel,
+	"targetLabel":    targetLabel,
 }
 
 func (a *App) loadTemplates() {
@@ -92,18 +97,18 @@ func (a *App) renderErr(w http.ResponseWriter, r *http.Request, page, title, msg
 func (a *App) renderView(w http.ResponseWriter, page string, v *View, status int) {
 	t, ok := a.pages[page]
 	if !ok {
-		http.Error(w, "unknown page "+page, http.StatusInternalServerError)
+		http.Error(w, "화면 템플릿을 찾을 수 없습니다: "+page, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if err := t.Execute(w, v); err != nil {
-		log.Printf("render %s: %v", page, err)
+		log.Printf("화면 출력 오류(%s): %v", page, err)
 	}
 }
 
 func (a *App) fail(w http.ResponseWriter, err error) {
-	log.Printf("error: %v", err)
+	log.Printf("처리 오류: %v", err)
 	http.Error(w, "처리 중 오류가 발생했습니다: "+err.Error(), http.StatusInternalServerError)
 }
 
@@ -184,7 +189,8 @@ func (a *App) routes() http.Handler {
 	mux.HandleFunc("POST /nac/complete", a.requireUser(a.handleNacComplete))
 	mux.HandleFunc("GET /package", a.requireUser(a.handlePackage))
 	mux.HandleFunc("GET /outbox/{name}", a.requireUser(a.handleOutboxFile))
-	mux.HandleFunc("POST /run-daily", a.requireUser(a.handleRunDaily))
+	mux.HandleFunc("GET /jobs", a.requireAdmin(a.handleJobs))
+	mux.HandleFunc("POST /jobs/run", a.requireUser(a.handleJobRun))
 
 	mux.HandleFunc("GET /people", a.requireUser(a.handlePeople))
 	mux.HandleFunc("GET /people/new", a.requireAdmin(a.handlePersonNewPage))

@@ -6,8 +6,8 @@
 <section class="card">
   <div class="head"><h2>제출 패키지 <small class="muted">대장 전체(HWP+CSV) + NAC 등록·해제 파일 + IP 사용현황을 ZIP 하나로</small></h2>
     <div><a class="btn primary" href="/package">지금 만들기</a>
-    {{if $admin}}<form method="post" action="/run-daily" class="inline"><input type="hidden" name="csrf" value="{{$.User.CSRF}}"><button>자동 작업 지금 실행</button></form>{{end}}</div></div>
-  <p class="muted">매일 자동으로 만들어 데이터 폴더의 outbox에 보관합니다(최근 30개 표시). 마지막 자동 실행: {{.LastRun}}</p>
+    {{if $admin}}<a class="btn" href="/jobs">자동 작업</a>{{end}}</div></div>
+  <p class="muted">매일 자동으로 만들어 데이터 폴더의 outbox에 30일간 보관합니다. 마지막 자동 생성: {{with .LastPackage}}{{.StartedAt}}{{else}}아직 없음{{end}}</p>
   {{if .Outbox}}<p>{{range .Outbox}}<a href="/outbox/{{.}}">{{.}}</a> &nbsp; {{end}}</p>{{end}}
 </section>
 

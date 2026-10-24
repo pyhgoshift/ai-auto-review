@@ -4,7 +4,7 @@
 <form method="get" action="/audit" class="search"><input name="q" value="{{.Q}}" placeholder="사용자·작업·대상 검색"><button>검색</button></form></div>
 <table class="list">
   <tr><th>일시</th><th>사용자</th><th>작업</th><th>대상</th><th>내용</th><th>IP</th></tr>
-  {{range .Rows}}<tr><td>{{.At}}</td><td>{{.Actor}}</td><td>{{.Action}}</td><td>{{.Target}}</td><td>{{.Detail}}</td><td>{{.IP}}</td></tr>{{end}}
+  {{range .Rows}}<tr><td>{{.At}}</td><td>{{.Actor}}</td><td>{{auditLabel .Action}}</td><td>{{targetLabel .Target}}</td><td>{{.Detail}}</td><td>{{.IP}}</td></tr>{{end}}
 </table>
 {{end}}
 {{end}}

@@ -42,7 +42,7 @@ var ledgers = []*Ledger{
 	{Key: "accounts", Title: "계정 관리 대장", List: "계정",
 		Cols: []string{"번호", "성명", "소속", "시스템", "계정ID", "발급일", "회수일", "비고"}},
 	{Key: "nac_request", Title: "IP·NAC 등록/해제 신청서", List: "장비", PerRecord: true,
-		Cols:    []string{"번호", "신청구분", "MAC", "IP", "성명", "소속", "자산번호", "장비", "모델", "시리얼", "사용시작", "사용종료"},
+		Cols:    nacFieldOrder,
 		Scalars: []string{"신청구분", "건수", "서브넷", "게이트웨이", "DNS"}},
 	{Key: "pledge_doc", Title: "보안서약서(개인별)", PerRecord: true,
 		Scalars: []string{"문서명", "본문", "성명", "소속", "직급", "담당업무", "서명일시", "서명일", "서명이름", "서명방식", "버전", "본문해시"}},
@@ -141,7 +141,7 @@ func (a *App) ledgerRows(key string) ([]map[string]string, error) {
 				"발급일": c.IssuedAt, "회수일": c.RevokedAt, "비고": c.Note})
 		}
 	default:
-		return nil, errors.New("unknown ledger")
+		return nil, errors.New("알 수 없는 대장 종류입니다")
 	}
 	return out, nil
 }
@@ -189,7 +189,7 @@ func (a *App) handleExports(w http.ResponseWriter, r *http.Request) {
 		custom[l.Key] = c
 	}
 	a.render(w, r, "exports", "대장 출력", map[string]any{"Ledgers": ledgers, "Custom": custom, "Common": commonScalars,
-		"Outbox": a.outboxFiles(), "LastRun": a.setting("last_daily_run")})
+		"Outbox": a.outboxFiles(), "LastPackage": a.lastRun("package", true)})
 }
 
 func (a *App) handleExport(w http.ResponseWriter, r *http.Request) {

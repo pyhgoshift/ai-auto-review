@@ -417,6 +417,7 @@ func (a *App) handleBadgeReturn(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err)
 		return
 	}
+	a.tryCompleteOffboarding(p.ID, userFrom(r).Name)
 	a.personAction(w, r, p, "badge_return", "출입증 반납을 기록했습니다", p.BadgeNo)
 }
 
@@ -479,11 +480,13 @@ func (a *App) handleOfflineAck(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, err)
 		return
 	}
+	a.tryCompleteOffboarding(p.ID, userFrom(r).Name)
 	a.personAction(w, r, p, "ack_offline", d.Title+" 서면/집합 이행을 기록했습니다", d.Title)
 }
 
+// insertAck는 서명·이수 기록을 남긴다. 같은 날 같은 문서·버전 기록이 이미 있으면 조용히 건너뛴다(중복 방지).
 func (a *App) insertAck(p *Person, d *Document, signedName, method, at, ip, by string) error {
-	_, err := a.db.Exec(`INSERT INTO acks(person_id, document_id, version, title, body, body_sha256, signed_name, method, acked_at, ip, recorded_by)
+	_, err := a.db.Exec(`INSERT OR IGNORE INTO acks(person_id, document_id, version, title, body, body_sha256, signed_name, method, acked_at, ip, recorded_by)
 		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.ID, d.ID, d.Version, d.Title, d.Body, sha256Hex(d.Title+"\n"+d.Body), signedName, method, at, ip, by)
 	return err
@@ -523,6 +526,7 @@ func (a *App) handleAccountRevoke(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.audit(userFrom(r).Login, clientIP(r), "account_revoke", fmt.Sprintf("person:%d", personID), system+" "+login)
+	a.tryCompleteOffboarding(personID, userFrom(r).Name)
 	redirectMsg(w, r, fmt.Sprintf("/people/%d", personID), system+" 계정 회수를 기록했습니다")
 }
 

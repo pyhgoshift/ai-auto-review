@@ -3,15 +3,20 @@
 <h1>설정</h1>
 <div class="grid2">
 <form method="post" action="/settings" class="card form">
-  <h2>프로젝트</h2>
   <input type="hidden" name="csrf" value="{{$.User.CSRF}}">
-  {{$v := .Vals}}
-  {{range .Keys}}
-    <label>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}
-    {{if or (eq .Key "check_items") (eq .Key "account_systems") (eq .Key "asset_kinds") (eq .Key "allowed_companies") (eq .Key "ip_pool")}}
-      <textarea name="{{.Key}}" rows="6">{{index $v .Key}}</textarea>
-    {{else}}<input name="{{.Key}}" value="{{index $v .Key}}">{{end}}
-    </label>
+  {{$v := .Vals}}{{$keys := .Keys}}{{$fields := .NacFields}}
+  {{range $g := .Groups}}
+  <h2>{{$g}}</h2>
+  {{range $keys}}{{if eq .Group $g}}
+    {{if eq .Kind "check"}}
+      <label class="check"><input type="checkbox" name="{{.Key}}" value="1" {{if eq (index $v .Key) "1"}}checked{{end}}> {{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}</label>
+    {{else}}
+      <label>{{.Label}}{{if .Help}} <small class="muted">{{.Help}}</small>{{end}}
+      {{if eq .Kind "lines"}}<textarea name="{{.Key}}" rows="{{if eq .Key "nac_csv_columns"}}9{{else}}5{{end}}">{{index $v .Key}}</textarea>{{else}}<input name="{{.Key}}" value="{{index $v .Key}}">{{end}}
+      </label>
+      {{if eq .Key "nac_csv_columns"}}<p class="muted small">사용 가능한 필드: {{range $fields}}<code>{{.}}</code> {{end}}<br>예) 고객사 양식 머리글이 영문이면 <code>MAC=mac</code>, <code>만료일시=unregdate</code> 처럼 적습니다.</p>{{end}}
+    {{end}}
+  {{end}}{{end}}
   {{end}}
   <button class="primary">저장</button>
 </form>

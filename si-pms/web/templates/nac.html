@@ -3,26 +3,43 @@
 <h1>IP·NAC</h1>
 <div class="tiles">
   <div class="tile hl"><b>{{len .Register}}</b><span>NAC 등록 대기</span></div>
+  <div class="tile hl"><b>{{len .Update}}</b><span>만료일 변경 대기</span></div>
   <div class="tile hl"><b>{{len .Remove}}</b><span>NAC 해제 대기</span></div>
   <div class="tile"><b>{{len .Active}}</b><span>사용 중</span></div>
-  <div class="tile"><b>{{.PoolUsed}} / {{.PoolTotal}}</b><span>IP 사용 / 전체</span></div>
+  <div class="tile"><b>{{.PoolUsed}} / {{.PoolTotal}}</b><span>IP 사용 / 배정 가능</span></div>
 </div>
 {{if .PoolErr}}<div class="flash err">{{.PoolErr}}</div>{{end}}
-<p class="muted">처리 순서: ① 아래 파일(CSV·신청서)을 받아 NAC 담당자에게 전달 → ② NAC에 등록·해제되면 해당 건을 체크하고 <b>완료 처리</b>. 등록 완료 시 투입 인력의 상태 페이지에 IP가 자동으로 나타납니다.</p>
+<div class="card">
+  <p><b>처리 순서</b> ① 아래 파일(CSV·신청서)을 받아 NAC 담당자에게 전달 → ② NAC에서 처리되면 해당 건을 체크하고 <b>완료 처리</b></p>
+  <p class="muted">등록 파일에는 <b>만료일(철수예정일{{if .Buffer}} + {{.Buffer}}일{{end}})</b>이 들어갑니다. NAC에 만료일을 함께 등록하면, 해제 파일 전달을 잊어도 그날 NAC가 스스로 차단합니다.
+  철수예정일이 바뀌면 "만료일 변경 대기"에 자동으로 올라옵니다. 파일 열 구성은 <a href="/settings">설정 → NAC</a>에서 고객사 NAC 양식에 맞게 바꿀 수 있습니다.</p>
+</div>
 
 <section class="card">
-  <div class="head"><h2>등록 대기</h2>
-    <div><a class="btn" href="/nac/export?kind=register&format=csv">등록 CSV</a> <a class="btn" href="/nac/export?kind=register">신청서 HWP</a></div></div>
+  <div class="head"><h2>① 등록 대기</h2>
+    <div><a class="btn" href="/nac/export?kind=register&format=csv">등록 파일(CSV)</a> <a class="btn" href="/nac/export?kind=register">신청서(HWP)</a></div></div>
   <form method="post" action="/nac/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="kind" value="register">
-  <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>장비</th><th>요청일시</th></tr>
-  {{range .Register}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td><a href="/assets/{{.AssetID}}">{{.AssetNo}}</a> {{.AssetKind}}</td><td>{{.RequestedAt}}</td></tr>
-  {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
+  <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>장비</th><th>만료일</th><th>요청일시</th></tr>
+  {{range .Register}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td><a href="/assets/{{.AssetID}}">{{.AssetNo}}</a> {{.AssetKind}}</td><td>{{.Expiry}}</td><td>{{.RequestedAt}}</td></tr>
+  {{else}}<tr><td colspan="8" class="muted">없음</td></tr>{{end}}</table>
   {{if and $admin .Register}}<button class="primary">선택 건 NAC 등록 완료 처리</button>{{end}}
   </form>
 </section>
+
 <section class="card">
-  <div class="head"><h2>해제 대기</h2>
-    <div><a class="btn" href="/nac/export?kind=remove&format=csv">해제 CSV</a> <a class="btn" href="/nac/export?kind=remove">신청서 HWP</a></div></div>
+  <div class="head"><h2>② 만료일 변경 대기 <small class="muted">철수예정일이 바뀐 사용 중 장비</small></h2>
+    <div><a class="btn" href="/nac/export?kind=update&format=csv">변경 파일(CSV)</a> <a class="btn" href="/nac/export?kind=update">신청서(HWP)</a></div></div>
+  <form method="post" action="/nac/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="kind" value="update">
+  <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>NAC에 등록된 만료일</th><th>바뀐 만료일</th></tr>
+  {{range .Update}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td>{{if .ExpireSent}}{{.ExpireSent}}{{else}}<span class="muted">기록 없음</span>{{end}}</td><td><b>{{.Expiry}}</b></td></tr>
+  {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
+  {{if and $admin .Update}}<button class="primary">선택 건 만료일 변경 완료 처리</button>{{end}}
+  </form>
+</section>
+
+<section class="card">
+  <div class="head"><h2>③ 해제 대기 <small class="muted">조기 철수·반납 장비</small></h2>
+    <div><a class="btn" href="/nac/export?kind=remove&format=csv">해제 파일(CSV)</a> <a class="btn" href="/nac/export?kind=remove">신청서(HWP)</a></div></div>
   <form method="post" action="/nac/complete"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="kind" value="remove">
   <table><tr><th></th><th>성명</th><th>소속</th><th>MAC</th><th>IP</th><th>장비</th><th>해제요청</th></tr>
   {{range .Remove}}<tr><td><input type="checkbox" name="id" value="{{.ID}}" checked></td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.MAC}}</td><td>{{.IP}}</td><td>{{.AssetNo}}</td><td>{{.RemovalRequestedAt}}</td></tr>
@@ -30,10 +47,12 @@
   {{if and $admin .Remove}}<button class="primary">선택 건 NAC 해제 완료 처리 (IP 회수)</button>{{end}}
   </form>
 </section>
+
 <section class="card">
-  <h2>사용 중 <small class="muted">서브넷 {{.Netmask}} · 게이트웨이 {{.Gateway}} · DNS {{.DNS}}</small></h2>
-  <table><tr><th>IP</th><th>MAC</th><th>성명</th><th>소속</th><th>장비</th><th>등록일시</th><th>철수예정</th></tr>
-  {{range .Active}}<tr><td>{{.IP}}</td><td>{{.MAC}}</td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.AssetNo}}</td><td>{{.RegisteredAt}}</td><td>{{.EndDate}}</td></tr>
+  <h2>사용 중 <small class="muted">만료일 가까운 순 · 서브넷 {{.Netmask}} · 게이트웨이 {{.Gateway}} · DNS {{.DNS}}</small></h2>
+  <table><tr><th>IP</th><th>MAC</th><th>성명</th><th>소속</th><th>장비</th><th>등록일시</th><th>만료일</th></tr>
+  {{range .Active}}<tr><td>{{.IP}}</td><td>{{.MAC}}</td><td><a href="/people/{{.PersonID}}">{{.PersonName}}</a></td><td>{{.Company}}</td><td>{{.AssetNo}}</td><td>{{.RegisteredAt}}</td>
+    <td>{{.Expiry}}{{if ne .Expiry .ExpireSent}} <span class="tag">NAC 미반영</span>{{end}}</td></tr>
   {{else}}<tr><td colspan="7" class="muted">없음</td></tr>{{end}}</table>
 </section>
 {{end}}
