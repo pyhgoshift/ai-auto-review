@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사업관리 현황판</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --ink:#1c2230; --sub:#5b6475; --line:#e3e6eb;
+  --brand:#1f5fa8; --brand-soft:#e6eef8;
+  --ok:#1e8a5a; --ok-soft:#e3f4ec; --warn:#b7791f; --warn-soft:#fbf1df;
+  --bad:#c23b3b; --bad-soft:#fbe7e7; --plan:#9aa4b5;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161d; --panel:#1a202a; --ink:#e7eaf0; --sub:#a2abba; --line:#2b3340;
+    --brand:#6ea4e6; --brand-soft:#1d2b3d;
+    --ok:#4cc48b; --ok-soft:#173226; --warn:#e0a84a; --warn-soft:#352a17;
+    --bad:#ec7474; --bad-soft:#3a1d1d; --plan:#5f6a7c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161d; --panel:#1a202a; --ink:#e7eaf0; --sub:#a2abba; --line:#2b3340;
+  --brand:#6ea4e6; --brand-soft:#1d2b3d;
+  --ok:#4cc48b; --ok-soft:#173226; --warn:#e0a84a; --warn-soft:#352a17;
+  --bad:#ec7474; --bad-soft:#3a1d1d; --plan:#5f6a7c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:15px;line-height:1.5}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:16px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end;justify-content:space-between}
+h1{font-size:20px;margin:0}
+.meta{color:var(--sub);font-size:13px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.sample{background:var(--warn-soft);color:var(--warn)}
+nav{display:flex;gap:4px;overflow-x:auto;margin-top:14px}
+nav button{border:0;background:none;color:var(--sub);padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer;white-space:nowrap}
+nav button:hover{background:var(--brand-soft);color:var(--ink)}
+nav button[aria-selected="true"]{background:var(--brand);color:#fff}
+main{padding:16px}
+section[hidden]{display:none}
+.grid{display:grid;gap:12px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.two{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{font-size:15px;margin:0 0 12px}
+.kpi .label{color:var(--sub);font-size:13px}
+.kpi .value{font-size:28px;font-weight:700;margin:4px 0}
+.kpi .note{font-size:13px;color:var(--sub)}
+.bar{height:8px;background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.bar>i{position:absolute;inset:0 auto 0 0;background:var(--brand);border-radius:4px}
+.bar>b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin:10px 0 4px}
+.up{color:var(--ok)} .down{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--sub);font-weight:600;font-size:13px;white-space:nowrap}
+.scroll{overflow-x:auto}
+.lv-높음,.st-미제출{background:var(--bad-soft);color:var(--bad)}
+.lv-중간,.st-검토중,.st-조치중{background:var(--warn-soft);color:var(--warn)}
+.lv-낮음,.st-제출완료,.st-종료{background:var(--ok-soft);color:var(--ok)}
+.st-열림{background:var(--brand-soft);color:var(--brand)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+select,input,button.btn{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+button.btn{cursor:pointer}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+form.add{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:12px}
+/* 간트 */
+.gantt{min-width:760px}
+.g-head,.g-row{display:grid;grid-template-columns:220px 1fr;align-items:center}
+.g-row{border-bottom:1px solid var(--line);min-height:38px}
+.g-name{font-size:13px;padding-right:8px}
+.g-name small{color:var(--sub);display:block}
+.g-months{display:grid;grid-template-columns:repeat(10,1fr);font-size:12px;color:var(--sub)}
+.g-months span{border-left:1px solid var(--line);padding:4px}
+.g-track{position:relative;height:38px}
+.g-plan{position:absolute;top:10px;height:18px;background:var(--plan);opacity:.35;border-radius:4px}
+.g-act{position:absolute;top:10px;height:18px;background:var(--brand);border-radius:4px 0 0 4px}
+.g-act.late{background:var(--bad)}
+.g-today{position:absolute;top:0;bottom:0;width:2px;background:var(--bad)}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--sub);margin-top:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+textarea{width:100%;min-height:340px;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.muted{color:var(--sub);font-size:13px}
+@media (max-width:600px){.kpi .value{font-size:24px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1 id="pname"></h1>
+        <div class="meta" id="pmeta"></div>
+      </div>
+      <div class="meta"><span class="badge sample">예시 데이터</span> 기준일 <b id="today"></b></div>
+    </div>
+    <nav role="tablist">
+      <button role="tab" data-tab="dash" aria-selected="true">대시보드</button>
+      <button role="tab" data-tab="wbs">일정(WBS)</button>
+      <button role="tab" data-tab="risk">이슈·리스크</button>
+      <button role="tab" data-tab="doc">산출물</button>
+      <button role="tab" data-tab="report">주간보고</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 대시보드 -->
+  <section id="dash">
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid two" style="margin-top:12px">
+      <div class="card"><h2>단계별 진척 (막대=실적, 검은 선=계획)</h2><div id="phaseBars"></div></div>
+      <div class="card"><h2>주의가 필요한 항목</h2><div id="attention"></div></div>
+    </div>
+  </section>
+
+  <!-- WBS -->
+  <section id="wbs" hidden>
+    <div class="card scroll">
+      <div class="gantt" id="gantt"></div>
+      <div class="legend">
+        <span><i style="background:var(--plan);opacity:.5"></i>계획 기간</span>
+        <span><i style="background:var(--brand)"></i>실적 진척</span>
+        <span><i style="background:var(--bad)"></i>계획 대비 지연</span>
+        <span><i style="background:var(--bad);width:2px"></i>오늘</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 이슈·리스크 -->
+  <section id="risk" hidden>
+    <div class="card">
+      <div class="toolbar">
+        <select id="fType"><option value="">전체 구분</option><option>이슈</option><option>리스크</option></select>
+        <select id="fStatus"><option value="">전체 상태</option><option>열림</option><option>조치중</option><option>종료</option></select>
+        <button class="btn" id="resetBtn" title="처음 예시 데이터로 되돌리기">예시로 초기화</button>
+      </div>
+      <div class="scroll"><table>
+        <thead><tr><th>번호</th><th>구분</th><th>내용</th><th>영향도</th><th>담당</th><th>조치기한</th><th>상태</th></tr></thead>
+        <tbody id="riskBody"></tbody>
+      </table></div>
+      <form class="add" id="addForm">
+        <select name="type"><option>이슈</option><option>리스크</option></select>
+        <input name="title" placeholder="내용" required style="grid-column:span 2">
+        <select name="level"><option>높음</option><option selected>중간</option><option>낮음</option></select>
+        <input name="owner" placeholder="담당자" required>
+        <input name="due" type="date" required>
+        <button class="btn primary">등록</button>
+      </form>
+      <p class="muted">상태 칸을 바꾸거나 새로 등록한 내용은 이 브라우저에만 저장됩니다.</p>
+    </div>
+  </section>
+
+  <!-- 산출물 -->
+  <section id="doc" hidden>
+    <div class="card scroll"><table>
+      <thead><tr><th>단계</th><th>산출물</th><th>제출기한</th><th>상태</th></tr></thead>
+      <tbody id="docBody"></tbody>
+    </table></div>
+  </section>
+
+  <!-- 주간보고 -->
+  <section id="report" hidden>
+    <div class="card">
+      <div class="toolbar"><button class="btn primary" id="copyBtn">보고서 복사</button><span class="muted" id="copyMsg"></span></div>
+      <textarea id="reportText" readonly></textarea>
+    </div>
+  </section>
+</main>
+
+<script>
+// ───────── 예시 데이터 (실제 사업 정보로 바꿔서 쓰세요) ─────────
+const PROJECT = {
+  name: "OO 정보시스템 고도화 사업",
+  client: "근로복지공단",
+  contractor: "(가상) 한빛정보기술",
+  start: "2026-03-02", end: "2026-12-31",
+  pm: "김사업 PM",
+  budget: 48.5,  // 억 원
+  spent: 31.2
+};
+const TODAY = new Date("2026-11-05");
+
+const TASKS = [
+  {phase:"착수", name:"사업 착수·수행계획 수립", owner:"PMO", start:"2026-03-02", end:"2026-03-27", actual:100},
+  {phase:"분석", name:"현행 업무·시스템 분석", owner:"분석팀", start:"2026-03-16", end:"2026-04-30", actual:100},
+  {phase:"분석", name:"요구사항 정의", owner:"분석팀", start:"2026-04-01", end:"2026-05-15", actual:100},
+  {phase:"설계", name:"아키텍처·DB 설계", owner:"설계팀", start:"2026-05-04", end:"2026-06-26", actual:100},
+  {phase:"설계", name:"화면·인터페이스 설계", owner:"설계팀", start:"2026-05-18", end:"2026-07-10", actual:100},
+  {phase:"구현", name:"신청·심사 기능 개발", owner:"개발1팀", start:"2026-07-01", end:"2026-09-30", actual:96},
+  {phase:"구현", name:"보상·지급 기능 개발", owner:"개발2팀", start:"2026-07-01", end:"2026-10-16", actual:88},
+  {phase:"구현", name:"외부기관 연계 개발", owner:"연계팀", start:"2026-07-15", end:"2026-10-30", actual:72},
+  {phase:"시험", name:"단위·통합 시험", owner:"품질팀", start:"2026-09-21", end:"2026-11-20", actual:55},
+  {phase:"시험", name:"성능·보안 점검", owner:"품질팀", start:"2026-10-19", end:"2026-11-27", actual:30},
+  {phase:"이행", name:"데이터 이관·시스템 전환", owner:"PMO", start:"2026-11-23", end:"2026-12-11", actual:0},
+  {phase:"이행", name:"안정화·검수", owner:"PMO", start:"2026-12-07", end:"2026-12-31", actual:0}
+];
+
+const RISKS_DEFAULT = [
+  {id:1, type:"이슈", title:"외부기관 연계 API 규격 확정 지연", level:"높음", owner:"연계팀 이연계", due:"2026-11-12", status:"조치중"},
+  {id:2, type:"리스크", title:"통합시험 기간 부족으로 이행 일정 영향 가능", level:"높음", owner:"PMO 김사업", due:"2026-11-14", status:"열림"},
+  {id:3, type:"이슈", title:"보상 계산 규칙 변경 요청(고객 추가 요구)", level:"중간", owner:"개발2팀 박개발", due:"2026-11-10", status:"조치중"},
+  {id:4, type:"리스크", title:"이관 대상 데이터 품질 불량 가능성", level:"중간", owner:"PMO 최이관", due:"2026-11-20", status:"열림"},
+  {id:5, type:"이슈", title:"개발 서버 디스크 용량 부족", level:"낮음", owner:"인프라 정인프", due:"2026-10-30", status:"종료"}
+];
+
+const DOCS = [
+  {phase:"착수", name:"사업수행계획서", due:"2026-03-27", status:"제출완료"},
+  {phase:"분석", name:"요구사항정의서", due:"2026-05-15", status:"제출완료"},
+  {phase:"분석", name:"요구사항추적표", due:"2026-05-15", status:"제출완료"},
+  {phase:"설계", name:"아키텍처설계서", due:"2026-06-26", status:"제출완료"},
+  {phase:"설계", name:"화면설계서", due:"2026-07-10", status:"제출완료"},
+  {phase:"설계", name:"인터페이스설계서", due:"2026-07-10", status:"검토중"},
+  {phase:"구현", name:"프로그램목록·소스코드", due:"2026-10-30", status:"검토중"},
+  {phase:"시험", name:"통합시험계획서", due:"2026-09-25", status:"제출완료"},
+  {phase:"시험", name:"통합시험결과서", due:"2026-11-20", status:"미제출"},
+  {phase:"시험", name:"성능·보안점검결과서", due:"2026-11-27", status:"미제출"},
+  {phase:"이행", name:"데이터이관결과서", due:"2026-12-11", status:"미제출"},
+  {phase:"이행", name:"완료보고서", due:"2026-12-31", status:"미제출"}
+];
+
+// ───────── 계산 도구 ─────────
+const d = s => new Date(s);
+const DAY = 86400000;
+const days = (a,b) => Math.round((b-a)/DAY);
+const fmt = dt => `${dt.getMonth()+1}/${dt.getDate()}`;
+const won = v => v.toFixed(1)+"억";
+function planned(t){ // 오늘 기준 계획 진척률(기간 비례)
+  const s=d(t.start), e=d(t.end);
+  if (TODAY<=s) return 0; if (TODAY>=e) return 100;
+  return Math.round(days(s,TODAY)/days(s,e)*100);
+}
+function weighted(list, f){ // 기간을 가중치로 한 평균
+  let w=0, sum=0;
+  list.forEach(t=>{const len=days(d(t.start),d(t.end))+1; w+=len; sum+=f(t)*len;});
+  return w? Math.round(sum/w):0;
+}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ───────── 이슈·리스크 저장 (브라우저 저장소, 실패해도 동작) ─────────
+const KEY="pmo-risks-v1";
+function loadRisks(){
+  try{const v=JSON.parse(localStorage.getItem(KEY)); if(Array.isArray(v)) return v;}catch(e){}
+  return RISKS_DEFAULT.map(r=>({...r}));
+}
+function saveRisks(){ try{localStorage.setItem(KEY,JSON.stringify(risks));}catch(e){} }
+let risks = loadRisks();
+
+// ───────── 머리글 ─────────
+document.getElementById("pname").textContent = `${PROJECT.client} ${PROJECT.name}`;
+document.getElementById("pmeta").textContent =
+  `사업기간 ${PROJECT.start} ~ ${PROJECT.end} · 수행사 ${PROJECT.contractor} · ${PROJECT.pm} · 종료까지 D-${days(TODAY,d(PROJECT.end))}`;
+document.getElementById("today").textContent = TODAY.toISOString().slice(0,10);
+
+// ───────── 대시보드 ─────────
+function renderDash(){
+  const plan = weighted(TASKS, planned), act = weighted(TASKS, t=>t.actual);
+  const gap = act-plan;
+  const budgetRate = Math.round(PROJECT.spent/PROJECT.budget*100);
+  const open = risks.filter(r=>r.status!=="종료");
+  const high = open.filter(r=>r.level==="높음").length;
+  const docDone = DOCS.filter(x=>x.status==="제출완료").length;
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="card kpi"><div class="label">전체 진척률 (실적)</div>
+      <div class="value">${act}%</div>
+      <div class="bar"><i style="width:${act}%"></i><b style="left:${plan}%"></b></div>
+      <div class="note">계획 ${plan}% · <span class="${gap>=0?'up':'down'}">${gap>=0?'+':''}${gap}%p</span></div></div>
+    <div class="card kpi"><div class="label">예산 집행률</div>
+      <div class="value">${budgetRate}%</div>
+      <div class="bar"><i style="width:${budgetRate}%"></i></div>
+      <div class="note">${won(PROJECT.spent)} / ${won(PROJECT.budget)}</div></div>
+    <div class="card kpi"><div class="label">미해결 이슈·리스크</div>
+      <div class="value">${open.length}건</div>
+      <div class="note">그중 영향도 <b class="down">높음 ${high}건</b></div></div>
+    <div class="card kpi"><div class="label">산출물 제출</div>
+      <div class="value">${docDone}/${DOCS.length}</div>
+      <div class="bar"><i style="width:${docDone/DOCS.length*100}%"></i></div>
+      <div class="note">검토중 ${DOCS.filter(x=>x.status==="검토중").length}건</div></div>`;
+
+  const phases=[...new Set(TASKS.map(t=>t.phase))];
+  document.getElementById("phaseBars").innerHTML = phases.map(p=>{
+    const ts=TASKS.filter(t=>t.phase===p), pa=weighted(ts,t=>t.actual), pp=weighted(ts,planned);
+    return `<div class="row"><span>${p}</span><span>${pa}% <span class="muted">(계획 ${pp}%)</span></span></div>
+      <div class="bar"><i style="width:${pa}%;${pa<pp?'background:var(--bad)':''}"></i><b style="left:${pp}%"></b></div>`;
+  }).join("");
+
+  const late = TASKS.filter(t=>planned(t)-t.actual>=10);
+  const soon = open.filter(r=>days(TODAY,d(r.due))<=7).sort((a,b)=>d(a.due)-d(b.due));
+  document.getElementById("attention").innerHTML = `
+    <p class="muted" style="margin:0 0 6px">계획보다 10%p 이상 늦은 작업</p>
+    <table><tbody>${late.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.owner)}</td>
+      <td class="down">${t.actual}% / 계획 ${planned(t)}%</td></tr>`).join("")||'<tr><td>없음</td></tr>'}</tbody></table>
+    <p class="muted" style="margin:14px 0 6px">7일 안에 조치기한이 오는 이슈·리스크</p>
+    <table><tbody>${soon.map(r=>`<tr><td>${esc(r.title)}</td>
+      <td><span class="badge lv-${r.level}">${r.level}</span></td>
+      <td class="${d(r.due)<TODAY?'down':''}">${fmt(d(r.due))}${d(r.due)<TODAY?' (기한 지남)':''}</td></tr>`).join("")||'<tr><td>없음</td></tr>'}</tbody></table>`;
+}
+
+// ───────── 간트 차트 ─────────
+function renderGantt(){
+  const s=d(PROJECT.start), e=d(PROJECT.end), total=days(s,e)+1;
+  const pos = dt => Math.max(0,Math.min(100, days(s,dt)/total*100));
+  // 월 칸 너비를 실제 일수에 맞춤 (막대 위치와 정확히 일치하도록)
+  const months=[]; let c=new Date(s);
+  while(c<=e){const nx=new Date(c.getFullYear(),c.getMonth()+1,1); months.push({label:`${c.getMonth()+1}월`,len:days(c,nx<e?nx:new Date(e.getTime()+DAY))}); c=nx;}
+  const todayX = pos(TODAY);
+  let html = `<div class="g-head"><div></div><div class="g-months" style="grid-template-columns:${months.map(m=>m.len+'fr').join(' ')}">${months.map(m=>`<span>${m.label}</span>`).join("")}</div></div>`;
+  TASKS.forEach(t=>{
+    const l=pos(d(t.start)), w=pos(d(t.end))-l+100/total, late=planned(t)-t.actual>=10;
+    html += `<div class="g-row"><div class="g-name">${esc(t.name)}<small>${t.phase} · ${esc(t.owner)} · ${t.actual}%</small></div>
+      <div class="g-track">
+        <div class="g-plan" style="left:${l}%;width:${w}%"></div>
+        <div class="g-act ${late?'late':''}" style="left:${l}%;width:${w*t.actual/100}%"></div>
+        <div class="g-today" style="left:${todayX}%"></div>
+      </div></div>`;
+  });
+  document.getElementById("gantt").innerHTML = html;
+}
+
+// ───────── 이슈·리스크 표 ─────────
+function renderRisks(){
+  const ft=document.getElementById("fType").value, fs=document.getElementById("fStatus").value;
+  const rows = risks.filter(r=>(!ft||r.type===ft)&&(!fs||r.status===fs));
+  document.getElementById("riskBody").innerHTML = rows.map(r=>`<tr>
+    <td>${r.id}</td><td>${r.type}</td><td>${esc(r.title)}</td>
+    <td><span class="badge lv-${r.level}">${r.level}</span></td>
+    <td>${esc(r.owner)}</td>
+    <td class="${r.status!=='종료'&&d(r.due)<TODAY?'down':''}">${r.due}</td>
+    <td><select data-id="${r.id}" class="badge st-${r.status}">
+      ${["열림","조치중","종료"].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join("")}
+    </select></td></tr>`).join("") || '<tr><td colspan="7">해당 항목이 없습니다.</td></tr>';
+}
+document.getElementById("riskBody").addEventListener("change",e=>{
+  const r=risks.find(x=>x.id==e.target.dataset.id); if(!r) return;
+  r.status=e.target.value; saveRisks(); renderAll();
+});
+document.getElementById("fType").onchange = document.getElementById("fStatus").onchange = renderRisks;
+document.getElementById("addForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const f=new FormData(e.target);
+  risks.push({id:Math.max(0,...risks.map(r=>r.id))+1, type:f.get("type"), title:f.get("title"),
+    level:f.get("level"), owner:f.get("owner"), due:f.get("due"), status:"열림"});
+  saveRisks(); e.target.reset(); renderAll();
+});
+document.getElementById("resetBtn").onclick=()=>{
+  if(!confirm("직접 바꾼 내용이 지워지고 예시 데이터로 돌아갑니다. 계속할까요?")) return;
+  risks = RISKS_DEFAULT.map(r=>({...r})); saveRisks(); renderAll();
+};
+
+// ───────── 산출물 ─────────
+function renderDocs(){
+  document.getElementById("docBody").innerHTML = DOCS.map(x=>`<tr>
+    <td>${x.phase}</td><td>${esc(x.name)}</td>
+    <td class="${x.status!=='제출완료'&&d(x.due)<TODAY?'down':''}">${x.due}</td>
+    <td><span class="badge st-${x.status}">${x.status}</span></td></tr>`).join("");
+}
+
+// ───────── 주간보고 자동 작성 ─────────
+function renderReport(){
+  const plan=weighted(TASKS,planned), act=weighted(TASKS,t=>t.actual);
+  const next7 = new Date(TODAY.getTime()+7*DAY);
+  const open = risks.filter(r=>r.status!=="종료");
+  const ongoing = TASKS.filter(t=>t.actual>0&&t.actual<100);
+  const upcoming = TASKS.filter(t=>d(t.start)>TODAY&&d(t.start)<=new Date(TODAY.getTime()+21*DAY));
+  const docsDue = DOCS.filter(x=>x.status!=="제출완료"&&d(x.due)<=new Date(TODAY.getTime()+21*DAY));
+  document.getElementById("reportText").value =
+`[주간 업무보고] ${PROJECT.client} ${PROJECT.name}
+기준일: ${TODAY.toISOString().slice(0,10)} / 작성: ${PROJECT.pm}
+
+1. 전체 현황
+ - 진척률: 실적 ${act}% / 계획 ${plan}% (${act-plan>=0?'+':''}${act-plan}%p)
+ - 예산 집행: ${won(PROJECT.spent)} / ${won(PROJECT.budget)} (${Math.round(PROJECT.spent/PROJECT.budget*100)}%)
+ - 미해결 이슈·리스크: ${open.length}건 (높음 ${open.filter(r=>r.level==="높음").length}건)
+
+2. 진행 중인 작업
+${ongoing.map(t=>` - ${t.name} (${t.owner}): ${t.actual}% / 계획 ${planned(t)}%`).join("\n")}
+
+3. 3주 안에 시작할 작업
+${upcoming.map(t=>` - ${t.name} (${t.owner}): ${t.start} 시작`).join("\n")||" - 없음"}
+
+4. 주요 이슈·리스크
+${open.map(r=>` - [${r.type}/${r.level}] ${r.title} → ${r.owner}, 기한 ${r.due} (${r.status})`).join("\n")||" - 없음"}
+
+5. 제출 예정 산출물 (3주 이내)
+${docsDue.map(x=>` - ${x.name}: ${x.due} (${x.status})`).join("\n")||" - 없음"}
+
+6. 협조 요청 사항
+ - (직접 작성)
+`;
+}
+document.getElementById("copyBtn").onclick=async()=>{
+  const t=document.getElementById("reportText");
+  try{await navigator.clipboard.writeText(t.value); document.getElementById("copyMsg").textContent="복사했습니다.";}
+  catch(e){t.select(); document.getElementById("copyMsg").textContent="선택된 글을 Ctrl+C로 복사하세요.";}
+};
+
+// ───────── 탭 ─────────
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected", x===b));
+  document.querySelectorAll("main section").forEach(s=>s.hidden = s.id!==b.dataset.tab);
+});
+
+function renderAll(){ renderDash(); renderGantt(); renderRisks(); renderDocs(); renderReport(); }
+renderAll();
+</script>
+</body>
+</html>
