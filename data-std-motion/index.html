@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>데이터 표준화 설명 영상</title>
+<style>
+:root{
+  --bg:#070c17; --stage:#0b1220; --panel:#121c2e; --panel2:#17233a; --line:#26344d;
+  --ink:#e8edf5; --sub:#94a3b8; --teal:#2dd4bf; --blue:#60a5fa; --amber:#fbbf24;
+  --red:#f87171; --redbg:rgba(248,113,113,.16); --green:#4ade80; --greenbg:rgba(74,222,128,.15);
+  --purple:#a78bfa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px 0}
+#viewport{position:relative;overflow:hidden;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;background:
+  radial-gradient(1000px 500px at 80% -10%,rgba(45,212,191,.10),transparent 60%),
+  radial-gradient(800px 500px at -10% 110%,rgba(96,165,250,.10),transparent 60%),var(--stage);overflow:hidden}
+
+/* ── 장면 공통 ── */
+.scene{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .5s}
+.scene.active{opacity:1;visibility:visible}
+.abs{position:absolute}
+.head{position:absolute;left:60px;top:40px;right:60px}
+.badge{display:inline-block;padding:5px 14px;border-radius:999px;font-size:17px;font-weight:700;letter-spacing:.02em}
+.b-asis{background:rgba(248,113,113,.15);color:var(--red)}
+.b-step{background:rgba(45,212,191,.15);color:var(--teal)}
+.b-tobe{background:rgba(74,222,128,.15);color:var(--green)}
+.b-hard{background:rgba(251,191,36,.15);color:var(--amber)}
+h2{margin:10px 0 0;font-size:38px;letter-spacing:-.02em}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.muted{color:var(--sub)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+
+/* 등장 애니메이션: 장면이 활성화될 때만 재생 */
+.active .a{animation:var(--an,fadeUp) .7s cubic-bezier(.2,.8,.2,1) var(--d,0s) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pop{0%{opacity:0;transform:scale(.5)}70%{opacity:1;transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.draw{stroke-dasharray:1;stroke-dashoffset:1}
+.active .draw{animation:draw var(--t,1.2s) ease-out var(--d,0s) forwards}
+
+/* 자막 */
+#cap{position:absolute;left:0;right:0;bottom:0;height:108px;padding:18px 90px;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-size:23px;line-height:1.5;background:linear-gradient(transparent,rgba(0,0,0,.55) 35%);transition:opacity .35s}
+#cap.hide{opacity:0}
+#nocap #cap{display:none}
+#prog{position:absolute;left:0;bottom:0;height:4px;background:var(--teal);width:0}
+
+/* ── 0. 타이틀 ── */
+.sq{position:absolute;width:30px;height:30px;border-radius:6px;background:var(--teal)}
+.active .sq{animation:settle 2.2s cubic-bezier(.2,.8,.2,1) var(--d) both}
+@keyframes settle{0%{transform:translate(var(--sx),var(--sy)) rotate(var(--r));background:var(--c);opacity:.25}
+  55%{background:var(--c);opacity:.7}100%{transform:none;background:var(--teal);opacity:1}}
+
+/* ── 1. AS-IS 시스템 ── */
+.sys{position:absolute;width:260px;padding:14px 18px;text-align:left}
+.sys b{display:block;font-size:20px;margin-bottom:6px}
+.sys .f{font-size:17px;color:var(--sub)}
+.sys .f span{color:var(--amber);font-weight:700}
+.warn{position:absolute;width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:26px;
+  display:flex;align-items:center;justify-content:center}
+.active .warn{animation:pop .5s var(--d) both,pulse 1.2s calc(var(--d) + .5s) infinite}
+
+/* ── 2. 문제 ── */
+.prob{position:absolute;top:150px;width:360px;height:420px;padding:22px}
+.prob h3{margin:0 0 14px;font-size:24px}
+.cmp{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:10px;background:var(--panel2);margin:8px 0;font-size:19px}
+.cmp b{font-size:24px}
+.qm{font-size:64px;font-weight:800;color:var(--red);text-align:center;margin-top:6px}
+.rec{padding:9px 12px;border-radius:8px;background:var(--panel2);margin:7px 0;font-size:18px}
+
+/* ── 3. 비유 ── */
+.tag{position:absolute;padding:12px 20px;border-radius:12px;font-size:24px;font-weight:700;background:var(--panel2);border:1px solid var(--line)}
+
+/* ── 4. 표준 단어 ── */
+.wb{position:absolute;top:200px;width:190px;padding:16px;text-align:center;font-size:28px;font-weight:800;border-radius:14px;background:var(--panel2);border:2px solid var(--blue)}
+.wb small{display:block;font-size:15px;font-weight:600;color:var(--sub);margin-top:4px}
+.active .wb{animation:fadeUp .6s var(--d) both,merge .7s 4s cubic-bezier(.6,0,.4,1) forwards}
+@keyframes merge{to{transform:translateX(var(--mx)) scale(.7);opacity:0}}
+.active .plus{animation:fadeUp .5s var(--d) both,fadeOut .4s 3.9s forwards}
+.ladder div{padding:12px 16px;border-radius:10px;margin-bottom:12px;font-size:20px;border:1px solid var(--line);background:var(--panel);color:var(--sub)}
+.active .ladder div{animation:lit .5s var(--d) forwards}
+@keyframes lit{to{border-color:var(--teal);color:var(--ink);background:rgba(45,212,191,.12)}}
+.def{display:grid;grid-template-columns:150px 1fr;gap:10px 16px;font-size:20px}
+.def dt{color:var(--sub)}
+.def dd{margin:0;font-weight:600}
+
+/* ── 5. 깔때기 ── */
+.chip{position:absolute;width:150px;padding:9px 6px;text-align:center;border-radius:10px;font-size:18px;background:var(--panel2);border:1px solid var(--line)}
+.active .chip{animation:fadeUp .5s var(--d) both,toF .8s var(--d2) cubic-bezier(.6,0,.4,1) forwards}
+@keyframes toF{to{transform:translate(var(--tx),0) scale(.5);opacity:0}}
+.out{position:absolute;left:820px;width:400px;padding:12px 18px;border-radius:12px;font-size:22px;font-weight:700;border:2px solid var(--green);background:var(--greenbg)}
+.out small{display:block;font-size:15px;color:var(--sub);font-weight:500}
+.rowlabel{position:absolute;left:60px;font-size:17px;color:var(--sub)}
+
+/* ── 6. 정교화 표 ── */
+.tbl{position:absolute;left:60px;top:150px;width:800px}
+.tr{display:grid;grid-template-columns:110px 170px 170px 150px 200px;border-bottom:1px solid var(--line)}
+.tr>div{padding:10px 12px;font-size:19px;position:relative;height:50px;display:flex;align-items:center}
+.th>div{color:var(--sub);font-size:16px;height:40px}
+.fx{border-radius:8px}
+.active .fx{animation:mark .3s var(--d) forwards,ok .5s var(--d2) forwards}
+@keyframes mark{to{background:var(--redbg);box-shadow:inset 0 0 0 2px var(--red)}}
+@keyframes ok{to{background:var(--greenbg);box-shadow:inset 0 0 0 2px var(--green)}}
+.fx .bv,.fx .gv{position:absolute;left:12px}
+.fx .gv{opacity:0;color:var(--green);font-weight:700}
+.active .fx .bv{animation:fadeOut .3s var(--d2) forwards}
+.active .fx .gv{animation:fadeIn .4s var(--d2) forwards}
+.note .n1,.note .n2{position:absolute;left:12px;font-size:16px;opacity:0}
+.note .n1{color:var(--red)} .note .n2{color:var(--green)}
+.active .note .n1{animation:fadeIn .3s var(--d) forwards,fadeOut .3s var(--d2) forwards}
+.active .note .n2{animation:fadeIn .4s var(--d2) forwards}
+.dup{position:relative}
+.dup::after{content:"";position:absolute;left:0;top:50%;height:2px;width:0;background:var(--red)}
+.active .dup::after{animation:strike .5s 7.6s forwards}
+@keyframes strike{to{width:100%}}
+.active .dup{animation:fadeOut .6s 8.4s forwards}
+.scan{position:absolute;left:50px;width:820px;top:190px;height:4px;background:linear-gradient(90deg,transparent,var(--teal),transparent);box-shadow:0 0 20px var(--teal);opacity:0}
+.active .scan{animation:scan 3.2s 1s linear both}
+@keyframes scan{0%{opacity:1;transform:translateY(0)}95%{opacity:1}100%{opacity:0;transform:translateY(300px)}}
+.cycle{position:absolute;left:910px;top:180px;width:320px;height:320px}
+.ring{position:absolute;inset:40px;border-radius:50%;border:3px dashed var(--teal);opacity:.6}
+.active .ring{animation:spin 12s linear infinite}
+.cy{position:absolute;width:170px;white-space:nowrap;text-align:center;font-size:17px;padding:8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+
+/* ── 7. 의미 ── */
+.bub{position:absolute;top:250px;width:300px;padding:16px 18px;border-radius:16px;background:var(--panel2);border:1px solid var(--line);font-size:20px}
+.bub b{color:var(--amber)}
+.axis{position:absolute;left:140px;top:430px;width:1000px;height:3px;background:var(--line)}
+.dot{position:absolute;top:418px;width:26px;height:26px;border-radius:50%;background:var(--teal);margin-left:-13px}
+.dl{position:absolute;top:455px;width:220px;margin-left:-110px;text-align:center;font-size:18px}
+.dl b{display:block;font-size:20px;color:var(--teal)}
+
+/* ── 8. 모델링 ── */
+.mp{position:absolute;top:150px;width:360px;height:380px;padding:18px}
+.mp h3{margin:0;font-size:22px}
+.mp .s{font-size:16px;color:var(--sub);margin:2px 0 12px}
+.ent{border:1px solid var(--blue);border-radius:10px;margin-bottom:10px;font-size:16px;overflow:hidden}
+.ent div{padding:5px 10px}
+.ent .eh{background:rgba(96,165,250,.18);font-weight:700}
+.code{font-size:14.5px;line-height:1.55;color:#cbd5e1;white-space:pre;background:#0a1120;border-radius:10px;padding:12px}
+.code .k{color:var(--purple)} .code .t{color:var(--amber)}
+.arrow{position:absolute;top:320px;font-size:40px;color:var(--teal)}
+
+/* ── 9. TO-BE ── */
+.hub{position:absolute;left:470px;top:270px;width:340px;padding:16px;text-align:center;border-radius:18px;border:2px solid var(--green);background:rgba(74,222,128,.10)}
+.hub b{font-size:24px;display:block}
+.hub span{font-size:16px;color:var(--sub)}
+.tobe .sys .f{font-size:15px}
+.met{position:absolute;top:500px;width:270px;padding:10px 14px;border-radius:12px;background:var(--greenbg);border:1px solid rgba(74,222,128,.4);font-size:18px}
+.met b{color:var(--green)}
+
+/* ── 10. 빙산 ── */
+.ice{position:absolute;padding:8px 14px;border-radius:10px;font-size:19px;font-weight:600;text-align:center;width:280px;white-space:nowrap}
+.ice.top{background:rgba(255,255,255,.9);color:#0b1220}
+.ice.low{background:rgba(96,165,250,.16);border:1px solid rgba(96,165,250,.45)}
+
+/* ── 11. 난이도 ── */
+.hc{position:absolute;top:140px;width:370px;height:330px;padding:20px}
+.hc h3{margin:0 0 6px;font-size:23px}
+.hc p{margin:0 0 10px;font-size:17px;color:var(--sub);line-height:1.5}
+.rip{position:absolute;border-radius:50%;border:2px solid var(--amber);opacity:0}
+.active .rip{animation:ripple 2.4s var(--d) ease-out infinite}
+@keyframes ripple{0%{transform:scale(.2);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+.mini{position:absolute;white-space:nowrap;padding:4px 9px;border-radius:8px;font-size:15px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.45)}
+.meter{position:absolute;left:60px;top:495px;width:1160px}
+.mbar{height:20px;border-radius:10px;background:var(--panel2);overflow:hidden;margin-top:8px}
+.mbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));border-radius:10px}
+.active .mbar i{animation:fill 3s 9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes fill{to{width:92%}}
+
+/* ── 12. 요약 ── */
+.sc{position:absolute;top:150px;width:275px;height:330px;padding:18px}
+.sc .n{font-size:15px;font-weight:800;color:var(--teal)}
+.sc h3{margin:4px 0 8px;font-size:24px}
+.sc p{margin:0 0 12px;font-size:17px;color:var(--sub);line-height:1.45}
+.sc ul{margin:0;padding-left:18px;font-size:16px;line-height:1.6}
+.quote{position:absolute;left:60px;right:60px;top:505px;text-align:center;font-size:27px;font-weight:700}
+.quote em{font-style:normal;color:var(--teal)}
+
+/* 컨트롤 */
+#ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding:0 12px}
+#ctrl button{font:inherit;font-size:15px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer}
+#ctrl button:hover{border-color:var(--teal)}
+#dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+#dots button{width:30px;height:30px;padding:0;font-size:12px;color:var(--sub)}
+#dots button.on{background:var(--teal);color:#06231f;border-color:var(--teal);font-weight:800}
+#label{font-size:14px;color:var(--sub);min-width:200px;text-align:center}
+.paused .scene.active,.paused .scene.active *{animation-play-state:paused!important}
+.paused .scene.active *::after{animation-play-state:paused!important}
+</style>
+</head>
+<body>
+
+<div id="viewport"><div id="stage">
+
+<!-- 0. 타이틀 -->
+<section class="scene" data-t="9" data-name="시작" data-cap="공단에는 산재보험, 고용보험, 보험급여, 복지 사업까지 수많은 데이터가 쌓여 있습니다. 이 데이터를 모두가 '같은 말'로 쓰게 만드는 일이 무엇인지 함께 보겠습니다.">
+  <div class="abs a" style="left:60px;top:90px;--d:.2s"><span class="badge b-step">근로복지공단 데이터 업무 설명 · 예시</span></div>
+  <div class="abs a" style="left:60px;top:150px;font-size:66px;font-weight:800;line-height:1.15;letter-spacing:-.03em;--d:.6s">흩어진 데이터를<br><span style="color:var(--teal)">하나의 언어로</span></div>
+  <div class="abs a" style="left:62px;top:345px;font-size:25px;color:var(--sub);--d:1.2s">데이터 <b style="color:var(--ink)">표준화 · 정교화 · 모델링</b><br>AS-IS → TO-BE</div>
+  <div id="chaos" class="abs" style="left:770px;top:130px;width:420px;height:340px"></div>
+</section>
+
+<!-- 1. AS-IS -->
+<section class="scene" data-t="13" data-name="AS-IS" data-cap="같은 '사업장 번호'인데 시스템마다 이름도, 날짜 쓰는 법도 다릅니다. 시스템끼리 데이터를 주고받을 때마다 '번역'이 필요하고, 그만큼 연결선이 엉킵니다.">
+  <div class="head a"><span class="badge b-asis">AS-IS · 지금</span><h2>시스템마다 다른 말을 씁니다</h2></div>
+  <svg class="abs" style="left:0;top:0" width="1280" height="720" id="tangle"></svg>
+  <div class="sys box a" style="left:70px;top:175px;--d:.4s"><b>산재보험</b><div class="f">사업장: <span>사업장관리번호</span></div><div class="f">날짜: <span>2024.03.05</span></div></div>
+  <div class="sys box a" style="left:510px;top:150px;--d:.6s"><b>고용보험</b><div class="f">사업장: <span>BIZ_NO</span></div><div class="f">날짜: <span>20240305</span></div></div>
+  <div class="sys box a" style="left:950px;top:175px;--d:.8s"><b>보험급여 심사</b><div class="f">사업장: <span>사업장번호</span></div><div class="f">날짜: <span>24-03-05</span></div></div>
+  <div class="sys box a" style="left:200px;top:390px;--d:1s"><b>복지·융자</b><div class="f">사업장: <span>사업체코드</span></div><div class="f">날짜: <span>2024년 3월 5일</span></div></div>
+  <div class="sys box a" style="left:820px;top:390px;--d:1.2s"><b>통계·분석</b><div class="f">사업장: <span>WP_ID</span></div><div class="f">날짜: <span>05/03/2024</span></div></div>
+  <div class="warn" style="left:618px;top:330px;--d:4.6s">!</div>
+  <div class="abs a" style="left:480px;top:385px;width:320px;text-align:center;font-size:18px;color:var(--red);padding:8px 10px;border-radius:10px;background:rgba(11,18,32,.92);border:1px solid rgba(248,113,113,.5);--d:5s">변환 프로그램이 연결마다 따로 필요</div>
+</section>
+
+<!-- 2. 문제 -->
+<section class="scene" data-t="12" data-name="문제" data-cap="그 결과, 보고서마다 숫자가 다르고, 한 사람이 여러 명처럼 보이고, 시스템을 연결할 때마다 변환 작업을 새로 만들어야 합니다.">
+  <div class="head a"><span class="badge b-asis">AS-IS · 문제</span><h2>그래서 이런 일이 생깁니다</h2></div>
+  <div class="prob box a" style="left:60px;--d:.4s">
+    <h3>① 숫자가 안 맞는다</h3>
+    <div class="cmp a" style="--d:1s"><span>A부서 3월 재해자</span><b>12,340명</b></div>
+    <div class="cmp a" style="--d:1.4s"><span>B부서 3월 재해자</span><b>12,287명</b></div>
+    <div class="qm a" style="--an:pop;--d:2s">?</div>
+    <div class="muted a" style="font-size:17px;text-align:center;--d:2.4s">누구 숫자가 맞는 걸까요?</div>
+  </div>
+  <div class="prob box a" style="left:460px;--d:3.4s">
+    <h3>② 한 사람이 여러 명</h3>
+    <div class="rec a" style="--d:4s">홍길동 · 1970.01.01</div>
+    <div class="rec a" style="--d:4.3s">홍 길동 · 700101</div>
+    <div class="rec a" style="--d:4.6s">HONG GILDONG · 01/01/70</div>
+    <div class="qm a" style="--an:pop;--d:5.2s;font-size:40px;margin-top:16px">동일인? 3명?</div>
+  </div>
+  <div class="prob box a" style="left:860px;--d:6.4s">
+    <h3>③ 연결할 때마다 수작업</h3>
+    <div class="rec a" style="--d:7s">산재 → 고용 : 변환 프로그램 ①</div>
+    <div class="rec a" style="--d:7.3s">고용 → 통계 : 변환 프로그램 ②</div>
+    <div class="rec a" style="--d:7.6s">심사 → 복지 : 변환 프로그램 ③</div>
+    <div class="rec a" style="--d:7.9s">… 연결이 늘수록 계속 늘어남</div>
+    <div class="qm a" style="--an:pop;--d:8.6s;font-size:40px">변환 × N</div>
+  </div>
+</section>
+
+<!-- 3. 비유 -->
+<section class="scene" data-t="11" data-name="비유" data-cap="시장의 가게마다 같은 과일에 다른 이름표를 붙였다고 생각해 보세요. 표준화는 '이 과일의 이름은 사과, 코드는 F001'처럼 모두가 같은 이름표를 쓰기로 약속하는 일입니다.">
+  <div class="head a"><span class="badge b-step">쉽게 비유하면</span><h2>가게마다 이름표가 다른 시장</h2></div>
+  <div class="tag a" style="left:110px;top:190px;--d:.5s">사과</div>
+  <div class="tag a" style="left:80px;top:290px;--d:.8s">APPLE</div>
+  <div class="tag a" style="left:130px;top:390px;--d:1.1s">능금</div>
+  <div class="tag a" style="left:90px;top:490px;--d:1.4s">빨간과일</div>
+  <svg class="abs" style="left:0;top:0" width="1280" height="720">
+    <g stroke="var(--sub)" stroke-width="2" fill="none">
+      <path class="draw" pathLength="1" style="--d:2s" d="M210 215 C 380 215, 420 330, 540 340"/>
+      <path class="draw" pathLength="1" style="--d:2.1s" d="M215 315 C 380 315, 420 340, 540 345"/>
+      <path class="draw" pathLength="1" style="--d:2.2s" d="M200 415 C 380 415, 420 360, 540 350"/>
+      <path class="draw" pathLength="1" style="--d:2.3s" d="M240 515 C 380 515, 420 370, 540 355"/>
+    </g>
+    <path class="draw" pathLength="1" style="--d:4.4s" stroke="var(--teal)" stroke-width="4" fill="none" d="M720 345 L 840 345"/>
+  </svg>
+  <div class="abs a" style="left:555px;top:270px;font-size:130px;--an:pop;--d:3.2s">🍎</div>
+  <div class="abs box a" style="left:860px;top:250px;width:360px;padding:22px;border:2px solid var(--teal);--d:5s">
+    <div class="muted" style="font-size:17px">표준 이름표</div>
+    <div style="font-size:38px;font-weight:800;margin:4px 0">사과</div>
+    <div class="mono" style="font-size:20px;color:var(--teal)">코드 F001 · APPLE</div>
+    <div class="muted" style="font-size:17px;margin-top:8px">정의: 사과나무의 열매</div>
+  </div>
+  <div class="abs a" style="left:860px;top:450px;width:360px;font-size:19px;--d:6.5s">→ 어느 가게에서 팔든 <b style="color:var(--teal)">같은 이름, 같은 코드</b></div>
+</section>
+
+<!-- 4. 표준 단어·용어 -->
+<section class="scene" data-t="13" data-name="표준화①" data-cap="먼저 '단어'를 정합니다. 사업장, 관리, 번호. 단어를 조합해 '용어'를 만들고, 뜻과 영문 이름, 담을 형식까지 하나로 약속합니다. 이 약속을 모은 것이 '표준 사전'입니다.">
+  <div class="head a"><span class="badge b-step">STEP 1 · 표준화 ①</span><h2>이름을 약속합니다</h2></div>
+  <div class="wb" style="left:80px;--d:.5s;--mx:250px">사업장<small>표준단어 · BPLC</small></div>
+  <div class="wb" style="left:330px;--d:.9s;--mx:0px">관리<small>표준단어 · MNG</small></div>
+  <div class="wb" style="left:580px;--d:1.3s;--mx:-250px">번호<small>표준단어 · NO</small></div>
+  <div class="abs plus" style="left:285px;top:205px;font-size:40px;color:var(--sub);--d:2s">+</div>
+  <div class="abs plus" style="left:535px;top:205px;font-size:40px;color:var(--sub);--d:2.2s">+</div>
+  <div class="abs a" style="left:200px;top:190px;width:500px;padding:18px;text-align:center;border-radius:14px;border:2px solid var(--teal);background:rgba(45,212,191,.12);--an:pop;--d:4.6s">
+    <div style="font-size:34px;font-weight:800">사업장관리번호</div>
+    <div class="mono" style="font-size:20px;color:var(--teal)">BPLC_MNG_NO</div>
+  </div>
+  <dl class="def abs box a" style="left:80px;top:340px;width:690px;padding:22px 26px;margin:0;--d:6s">
+    <dt>표준용어</dt><dd>사업장관리번호</dd>
+    <dt>정의</dt><dd>공단이 사업장마다 부여한 고유 식별 번호</dd>
+    <dt>도메인(형식)</dt><dd class="mono">번호 · 문자 11자리</dd>
+    <dt>쓰지 않을 말</dt><dd style="color:var(--red)">BIZ_NO, 사업체코드, WP_ID …</dd>
+  </dl>
+  <div class="ladder abs" style="left:860px;top:170px;width:360px">
+    <div class="muted" style="border:0;background:none;padding:0 0 4px;font-size:17px">표준 사전의 4단 구조</div>
+    <div style="--d:1s">① 표준단어 <span class="muted">사업장 / 관리 / 번호</span></div>
+    <div style="--d:4.6s">② 표준용어 <span class="muted">사업장관리번호</span></div>
+    <div style="--d:6.8s">③ 표준도메인 <span class="muted">문자 11자리</span></div>
+    <div style="--d:8.4s">④ 표준코드 <span class="muted">성별·업종 같은 값 목록</span></div>
+  </div>
+</section>
+
+<!-- 5. 형식·코드 -->
+<section class="scene" data-t="12" data-name="표준화②" data-cap="다음은 '쓰는 방법'입니다. 날짜, 성별, 금액처럼 같은 값을 제각각 쓰던 것을 하나의 형식과 공통 코드로 맞춥니다.">
+  <div class="head a"><span class="badge b-step">STEP 2 · 표준화 ②</span><h2>쓰는 방법을 맞춥니다</h2></div>
+  <svg class="abs" style="left:0;top:0" width="1280" height="720">
+    <g fill="rgba(45,212,191,.15)" stroke="var(--teal)" stroke-width="2">
+      <path d="M690 165 L 760 190 L 760 230 L 690 255 Z"/>
+      <path d="M690 305 L 760 330 L 760 370 L 690 395 Z"/>
+      <path d="M690 445 L 760 470 L 760 510 L 690 535 Z"/>
+    </g>
+  </svg>
+  <div class="rowlabel" style="top:150px">날짜</div>
+  <div class="chip" style="left:60px;top:185px;--d:.4s;--d2:2.6s;--tx:640px">2024.03.05</div>
+  <div class="chip" style="left:215px;top:185px;--d:.6s;--d2:2.8s;--tx:485px">24-03-05</div>
+  <div class="chip" style="left:370px;top:185px;--d:.8s;--d2:3s;--tx:330px">2024년 3월 5일</div>
+  <div class="chip" style="left:525px;top:185px;--d:1s;--d2:3.2s;--tx:175px">05/03/2024</div>
+  <div class="out a" style="top:180px;--an:pop;--d:3.8s">2024-03-05<small>날짜 형식: YYYY-MM-DD 하나로</small></div>
+
+  <div class="rowlabel" style="top:290px">성별</div>
+  <div class="chip" style="left:60px;top:325px;--d:4.4s;--d2:6s;--tx:640px">남</div>
+  <div class="chip" style="left:215px;top:325px;--d:4.6s;--d2:6.2s;--tx:485px">M</div>
+  <div class="chip" style="left:370px;top:325px;--d:4.8s;--d2:6.4s;--tx:330px">male</div>
+  <div class="chip" style="left:525px;top:325px;--d:5s;--d2:6.6s;--tx:175px">1</div>
+  <div class="out a" style="top:320px;--an:pop;--d:7.2s">1 = 남 · 2 = 여<small>공통 코드표 하나로</small></div>
+
+  <div class="rowlabel" style="top:430px">금액</div>
+  <div class="chip" style="left:60px;top:465px;--d:7.8s;--d2:9.2s;--tx:640px">1,000,000원</div>
+  <div class="chip" style="left:215px;top:465px;--d:8s;--d2:9.4s;--tx:485px">100만</div>
+  <div class="chip" style="left:370px;top:465px;--d:8.2s;--d2:9.6s;--tx:330px">1000000.00</div>
+  <div class="chip" style="left:525px;top:465px;--d:8.4s;--d2:9.8s;--tx:175px">일백만원</div>
+  <div class="out a" style="top:460px;--an:pop;--d:10.3s">1000000<small>원 단위 정수 · 쉼표 없이</small></div>
+</section>
+
+<!-- 6. 정교화: 품질 -->
+<section class="scene" data-t="14" data-name="정교화①" data-cap="정교화는 데이터를 '믿을 수 있게' 만드는 일입니다. 규칙을 세워 검사하고, 없는 날짜·음수 금액·빈칸·중복을 찾아 원인까지 고칩니다. 그냥 지우면 안 되고, 근거 서류로 확인해야 합니다.">
+  <div class="head a"><span class="badge b-step">STEP 3 · 정교화 ①</span><h2>틀린 데이터를 찾아 고칩니다</h2></div>
+  <div class="tbl a" style="--d:.3s">
+    <div class="tr th"><div>근로자</div><div>생년월일</div><div>재해일자</div><div>휴업급여(원)</div><div>검사 결과</div></div>
+    <div class="tr"><div>김OO</div><div class="fx" style="--d:1.3s;--d2:5.6s"><span class="bv">1999-02-31</span><span class="gv">1999-02-13</span></div><div>2024-03-05</div><div>820000</div>
+      <div class="note" style="--d:1.3s;--d2:5.6s"><span class="n1">✕ 없는 날짜</span><span class="n2">✓ 원본 서류로 확인</span></div></div>
+    <div class="tr"><div>이OO</div><div>1985-07-12</div><div>2024-03-10</div><div class="fx" style="--d:1.8s;--d2:6.1s"><span class="bv">-350000</span><span class="gv">350000</span></div>
+      <div class="note" style="--d:1.8s;--d2:6.1s"><span class="n1">✕ 음수 금액</span><span class="n2">✓ 입력 오류 수정</span></div></div>
+    <div class="tr"><div>박OO</div><div class="fx" style="--d:2.4s;--d2:6.6s"><span class="bv">(빈칸)</span><span class="gv">1979-11-02</span></div><div>2024-03-12</div><div>640000</div>
+      <div class="note" style="--d:2.4s;--d2:6.6s"><span class="n1">✕ 필수값 누락</span><span class="n2">✓ 신청서로 보완</span></div></div>
+    <div class="tr"><div>최OO</div><div>1990-04-20</div><div class="fx" style="--d:3s;--d2:7.1s"><span class="bv">2031-01-05</span><span class="gv">2021-01-05</span></div><div>510000</div>
+      <div class="note" style="--d:3s;--d2:7.1s"><span class="n1">✕ 미래 날짜</span><span class="n2">✓ 오타 수정</span></div></div>
+    <div class="tr dup"><div>이OO</div><div>1985-07-12</div><div>2024-03-10</div><div>350000</div>
+      <div class="note" style="--d:3.6s;--d2:7.6s"><span class="n1">✕ 중복 기록</span><span class="n2">✓ 1건으로 정리</span></div></div>
+  </div>
+  <div class="scan"></div>
+  <div class="cycle a" style="--d:8.6s">
+    <div class="ring"></div>
+    <div class="cy" style="left:75px;top:0">① 품질 규칙 세우기</div>
+    <div class="cy" style="left:180px;top:135px">② 검사(진단)</div>
+    <div class="cy" style="left:75px;top:270px">③ 원인 찾기</div>
+    <div class="cy" style="left:-50px;top:135px">④ 고치고 재발 막기</div>
+  </div>
+  <div class="abs a muted" style="left:910px;top:520px;width:320px;text-align:center;font-size:17px;--d:9.4s">한 번이 아니라 <b style="color:var(--teal)">계속 도는 순환</b></div>
+</section>
+
+<!-- 7. 정교화: 의미 -->
+<section class="scene" data-t="14" data-name="정교화②" data-cap="이름만 같다고 끝이 아닙니다. 같은 '재해일자'를 누구는 사고 난 날, 누구는 진단일, 누구는 승인일로 썼다면 숫자가 달라집니다. 뜻을 나누고 정의를 분명히 하는 것도 정교화입니다.">
+  <div class="head a"><span class="badge b-step">STEP 4 · 정교화 ②</span><h2>같은 말, 같은 뜻으로</h2></div>
+  <div class="abs a" style="left:490px;top:150px;width:300px;padding:14px;text-align:center;font-size:32px;font-weight:800;border-radius:14px;border:2px solid var(--amber);background:rgba(251,191,36,.10);--an:pop;--d:.4s">"재해일자"</div>
+  <div class="bub a" style="left:100px;--d:1.4s">산재 담당<br><b>"사고가 난 날이죠"</b></div>
+  <div class="bub a" style="left:490px;--d:2.2s">의료 심사<br><b>"진단 받은 날이죠"</b></div>
+  <div class="bub a" style="left:880px;--d:3s">통계 담당<br><b>"승인된 날이죠"</b></div>
+  <div class="axis a" style="--an:fadeIn;--d:4.6s"></div>
+  <div class="dot a" style="left:240px;--an:pop;--d:5.2s"></div>
+  <div class="dl a" style="left:240px;--d:5.4s"><b>재해발생일자</b>3월 28일 · 사고</div>
+  <div class="dot a" style="left:560px;--an:pop;--d:6s"></div>
+  <div class="dl a" style="left:560px;--d:6.2s"><b>최초진단일자</b>3월 30일 · 진단</div>
+  <div class="dot a" style="left:1020px;--an:pop;--d:6.8s"></div>
+  <div class="dl a" style="left:1020px;--d:7s"><b>산재승인일자</b>4월 22일 · 승인</div>
+  <div class="abs a" style="left:60px;right:60px;top:535px;text-align:center;font-size:20px;--d:8.4s">같은 사람이 <b style="color:var(--amber)">3월 통계</b>에도, <b style="color:var(--amber)">4월 통계</b>에도 들어갈 수 있습니다 → 그래서 숫자가 달랐던 것</div>
+</section>
+
+<!-- 8. 모델링 -->
+<section class="scene" data-t="13" data-name="모델링" data-cap="표준과 품질이 갖춰지면 설계도를 그립니다. 무엇이 있는지(개념), 무엇을 담는지(논리), 실제로 어떻게 저장할지(물리) 순서로 점점 구체화합니다.">
+  <div class="head a"><span class="badge b-step">STEP 5 · 모델링</span><h2>정리된 데이터로 설계도를 그립니다</h2></div>
+  <div class="mp box a" style="left:60px;--d:.4s">
+    <h3>개념 모델</h3><div class="s">무엇이 있나? · 방 배치도</div>
+    <svg width="320" height="270" style="overflow:visible">
+      <g stroke="var(--sub)" stroke-width="2">
+        <line class="draw" pathLength="1" style="--d:1.6s" x1="80" y1="60" x2="240" y2="60"/>
+        <line class="draw" pathLength="1" style="--d:1.8s" x1="240" y1="60" x2="240" y2="200"/>
+        <line class="draw" pathLength="1" style="--d:2s" x1="240" y1="200" x2="80" y2="200"/>
+      </g>
+      <g font-size="17" font-weight="700" text-anchor="middle" fill="var(--ink)">
+        <circle cx="80" cy="60" r="46" fill="rgba(96,165,250,.2)" stroke="var(--blue)"/><text x="80" y="66">사업장</text>
+        <circle cx="240" cy="60" r="46" fill="rgba(96,165,250,.2)" stroke="var(--blue)"/><text x="240" y="66">근로자</text>
+        <circle cx="240" cy="200" r="46" fill="rgba(96,165,250,.2)" stroke="var(--blue)"/><text x="240" y="206">재해</text>
+        <circle cx="80" cy="200" r="46" fill="rgba(96,165,250,.2)" stroke="var(--blue)"/><text x="80" y="206">보험급여</text>
+      </g>
+    </svg>
+  </div>
+  <div class="arrow a" style="left:432px;--d:3s">›</div>
+  <div class="mp box a" style="left:460px;--d:3.4s">
+    <h3>논리 모델</h3><div class="s">무엇을 담나? · 상세 설계도</div>
+    <div class="ent a" style="--d:4.2s"><div class="eh">사업장</div><div>사업장관리번호 (식별자)</div><div>사업장명 · 업종코드</div></div>
+    <div class="ent a" style="--d:5s"><div class="eh">재해</div><div>재해번호 (식별자)</div><div>재해발생일자 · 최초진단일자</div><div>사업장관리번호 (연결)</div></div>
+  </div>
+  <div class="arrow a" style="left:832px;--d:6.4s">›</div>
+  <div class="mp box a" style="left:860px;--d:6.8s">
+    <h3>물리 모델</h3><div class="s">어떻게 저장하나? · 시공 도면</div>
+<div class="code a" style="--d:7.6s"><span class="k">TABLE</span> TB_BPLC
+  BPLC_MNG_NO  <span class="t">VARCHAR(11)</span> PK
+  BPLC_NM      <span class="t">VARCHAR(200)</span>
+  INDTY_CD     <span class="t">CHAR(5)</span>
+
+<span class="k">TABLE</span> TB_ACDNT
+  ACDNT_NO     <span class="t">VARCHAR(15)</span> PK
+  ACDNT_OCRN_DT <span class="t">DATE</span>
+  BPLC_MNG_NO  <span class="t">VARCHAR(11)</span> FK</div>
+  </div>
+  <div class="abs a" style="left:60px;right:60px;top:545px;text-align:center;font-size:19px;color:var(--sub);--d:9s">앞에서 정한 <b style="color:var(--teal)">표준용어 · 영문약어 · 도메인</b>이 그대로 설계도에 들어갑니다</div>
+</section>
+
+<!-- 9. TO-BE -->
+<section class="scene tobe" data-t="13" data-name="TO-BE" data-cap="TO-BE. 모든 시스템이 하나의 표준을 기준으로 연결됩니다. 숫자가 일치하고, 사람과 사업장을 정확히 알아보고, 분석과 AI에도 바로 쓸 수 있습니다.">
+  <div class="head a"><span class="badge b-tobe">TO-BE · 바뀐 모습</span><h2>하나의 표준으로 연결됩니다</h2></div>
+  <svg class="abs" style="left:0;top:0" width="1280" height="720" id="hubsvg">
+    <g stroke="var(--green)" stroke-width="2.5" opacity=".7">
+      <line class="draw" pathLength="1" style="--d:1.6s" x1="200" y1="215" x2="640" y2="320"/>
+      <line class="draw" pathLength="1" style="--d:1.7s" x1="640" y1="190" x2="640" y2="320"/>
+      <line class="draw" pathLength="1" style="--d:1.8s" x1="1080" y1="215" x2="640" y2="320"/>
+      <line class="draw" pathLength="1" style="--d:1.9s" x1="330" y1="425" x2="640" y2="320"/>
+      <line class="draw" pathLength="1" style="--d:2s" x1="950" y1="425" x2="640" y2="320"/>
+    </g>
+    <g fill="var(--green)">
+      <circle r="6"><animateMotion dur="2.2s" repeatCount="indefinite" path="M200 215 L640 320"/></circle>
+      <circle r="6"><animateMotion dur="1.6s" repeatCount="indefinite" path="M640 320 L640 190"/></circle>
+      <circle r="6"><animateMotion dur="2.4s" repeatCount="indefinite" path="M1080 215 L640 320"/></circle>
+      <circle r="6"><animateMotion dur="2s" repeatCount="indefinite" path="M640 320 L330 425"/></circle>
+      <circle r="6"><animateMotion dur="2.1s" repeatCount="indefinite" path="M950 425 L640 320"/></circle>
+    </g>
+  </svg>
+  <div class="sys box a" style="left:70px;top:175px;--d:.3s"><b>산재보험</b><div class="f">사업장관리번호 · 2024-03-05</div></div>
+  <div class="sys box a" style="left:510px;top:140px;--d:.4s"><b>고용보험</b><div class="f">사업장관리번호 · 2024-03-05</div></div>
+  <div class="sys box a" style="left:950px;top:175px;--d:.5s"><b>보험급여 심사</b><div class="f">사업장관리번호 · 2024-03-05</div></div>
+  <div class="sys box a" style="left:200px;top:385px;--d:.6s"><b>복지·융자</b><div class="f">사업장관리번호 · 2024-03-05</div></div>
+  <div class="sys box a" style="left:820px;top:385px;--d:.7s"><b>통계·분석</b><div class="f">사업장관리번호 · 2024-03-05</div></div>
+  <div class="hub a" style="--an:pop;--d:1.2s"><b>데이터 표준 허브</b><span>표준 사전 · 공통 코드 · 품질 관리</span></div>
+  <div class="met a" style="left:60px;--d:3.4s"><b>✓</b> A부서 = B부서 <b>12,340명</b></div>
+  <div class="met a" style="left:350px;--d:4.2s"><b>✓</b> 홍길동은 <b>한 사람</b></div>
+  <div class="met a" style="left:640px;--d:5s"><b>✓</b> 변환 × N → <b>표준 1개</b></div>
+  <div class="met a" style="left:930px;--d:5.8s"><b>✓</b> 분석·AI에 <b>바로 활용</b></div>
+</section>
+
+<!-- 10. 빙산 -->
+<section class="scene" data-t="13" data-name="어려움①" data-cap="그런데 왜 이렇게 어려울까요? 눈에 보이는 건 이름을 정하고 형식을 맞추는 일뿐이지만, 진짜 일은 물 아래에 있습니다.">
+  <div class="head a"><span class="badge b-hard">왜 어려울까?</span><h2>보이는 건 빙산의 일각</h2></div>
+  <svg class="abs" style="left:0;top:0" width="1280" height="720">
+    <rect x="0" y="250" width="1280" height="470" fill="rgba(30,64,120,.35)" class="a" style="--an:fadeIn;--d:.2s"/>
+    <line x1="0" y1="250" x2="1280" y2="250" stroke="var(--blue)" stroke-width="2" opacity=".6"/>
+    <polygon class="a" style="--an:fadeIn;--d:.4s" points="560,150 720,150 770,250 510,250" fill="rgba(255,255,255,.85)"/>
+    <polygon class="a" style="--an:fadeIn;--d:1.6s" points="510,250 770,250 1090,450 960,600 330,600 190,440" fill="rgba(160,200,255,.12)" stroke="rgba(160,200,255,.4)"/>
+  </svg>
+  <div class="abs a" style="left:560px;top:170px;width:160px;text-align:center;color:#0b1220;font-weight:800;font-size:18px;line-height:1.3;--d:.8s">용어 정하기<br>형식 맞추기</div>
+  <div class="ice low a" style="left:280px;top:290px;--d:2.4s">부서 간 뜻 합의</div>
+  <div class="ice low a" style="left:740px;top:290px;--d:3.2s">수십 년 쌓인 과거 데이터</div>
+  <div class="ice low a" style="left:240px;top:390px;--d:4s">관련 프로그램 수정·재시험</div>
+  <div class="ice low a" style="left:780px;top:390px;--d:4.8s">업무 멈춤 없이 전환</div>
+  <div class="ice low a" style="left:350px;top:500px;--d:5.6s">개인정보·법령 준수</div>
+  <div class="ice low a" style="left:650px;top:500px;--d:6.4s">끝나지 않는 유지 관리</div>
+</section>
+
+<!-- 11. 난이도 상세 -->
+<section class="scene" data-t="15" data-name="어려움②" data-cap="컬럼 이름 하나가 수많은 프로그램과 보고서에 연결되어 있어, 하나를 바꾸면 줄줄이 고치고 다시 시험해야 합니다. 그것도 업무를 멈추지 않은 채로, 모든 부서의 합의를 얻어서요.">
+  <div class="head a"><span class="badge b-hard">왜 어려울까?</span><h2>세 가지 큰 벽</h2></div>
+  <div class="hc box a" style="left:60px;--d:.4s">
+    <h3>① 하나 바꾸면 줄줄이</h3>
+    <p>이름 하나에 화면·프로그램·보고서·연계가 모두 엮여 있습니다.</p>
+    <div style="position:relative;height:190px">
+      <div class="rip" style="left:115px;top:25px;width:140px;height:140px;--d:1.2s"></div>
+      <div class="rip" style="left:115px;top:25px;width:140px;height:140px;--d:2.4s"></div>
+      <div class="abs mono a" style="left:125px;top:80px;width:120px;text-align:center;font-size:14px;padding:6px;border-radius:8px;background:var(--amber);color:#1c1300;font-weight:800;--an:pop;--d:1s">BIZ_NO 변경</div>
+      <div class="mini a" style="left:0;top:10px;--an:pop;--d:2s">프로그램 수백 개</div>
+      <div class="mini a" style="left:215px;top:10px;--an:pop;--d:2.4s">화면 수십 개</div>
+      <div class="mini a" style="left:0;top:150px;--an:pop;--d:2.8s">보고서 수십 종</div>
+      <div class="mini a" style="left:200px;top:150px;--an:pop;--d:3.2s">외부기관 연계</div>
+    </div>
+  </div>
+  <div class="hc box a" style="left:455px;--d:3.8s">
+    <h3>② 달리는 차의 바퀴 갈기</h3>
+    <p>보험 신청과 급여 지급은 하루도 멈출 수 없습니다.</p>
+    <div class="a" style="font-size:72px;text-align:center;--an:pop;--d:4.6s">🚗💨</div>
+    <p class="a" style="--d:5.4s;color:var(--ink)">→ 옛 구조와 새 구조를 한동안 <b style="color:var(--amber)">같이 운영</b>하며 조금씩 옮겨야 합니다.</p>
+  </div>
+  <div class="hc box a" style="left:850px;--d:6.2s">
+    <h3>③ 모두가 자기가 맞다</h3>
+    <p>부서마다 오래 써 온 뜻이 있고, 각자 이유가 있습니다.</p>
+    <div class="rec a" style="--d:7s">산재: "우리 정의가 법에 맞다"</div>
+    <div class="rec a" style="--d:7.4s">통계: "우리는 10년째 이렇게 집계"</div>
+    <div class="rec a" style="--d:7.8s">현장: "바꾸면 업무가 헷갈린다"</div>
+    <p class="a" style="--d:8.4s;color:var(--ink);margin-top:10px">→ <b style="color:var(--amber)">합의 · 결재 · 표준 관리 조직</b>이 필요</p>
+  </div>
+  <div class="meter a" style="--d:8.8s">
+    <div style="display:flex;justify-content:space-between;font-size:18px"><span>체감 난이도</span><span class="muted">기술보다 <b style="color:var(--amber)">사람과 합의</b>가 더 어렵습니다</span></div>
+    <div class="mbar"><i></i></div>
+  </div>
+  <div class="abs muted" style="left:60px;top:560px;font-size:14px">※ 규모 표현은 이해를 돕기 위한 예시입니다</div>
+</section>
+
+<!-- 12. 요약 -->
+<section class="scene" data-t="14" data-name="정리" data-cap="정리하면, 이름과 형식을 맞추고(표준화), 믿을 수 있게 고치고 뜻을 분명히 하고(정교화), 설계도로 만들고(모델링), 계속 관리합니다. 데이터 표준화는 조직이 같은 언어로 말하게 만드는 일입니다.">
+  <div class="head a"><span class="badge b-tobe">한눈에 정리</span><h2>무슨 일을 하고, 무엇이 남나</h2></div>
+  <div class="sc box a" style="left:60px;--d:.4s"><div class="n">1 · 표준화</div><h3>이름·형식 약속</h3><p>단어, 용어, 형식, 코드를 하나로</p><ul><li>표준 단어·용어 사전</li><li>표준 도메인 정의서</li><li>공통 코드 정의서</li></ul></div>
+  <div class="sc box a" style="left:355px;--d:1.2s"><div class="n">2 · 정교화</div><h3>믿을 수 있게</h3><p>오류를 찾아 고치고, 뜻을 분명히</p><ul><li>품질 진단 보고서</li><li>정제 결과서</li><li>용어 정의 합의서</li></ul></div>
+  <div class="sc box a" style="left:650px;--d:2s"><div class="n">3 · 모델링</div><h3>설계도 그리기</h3><p>개념 → 논리 → 물리로 구체화</p><ul><li>개념·논리 데이터 모델</li><li>물리 데이터 모델(ERD)</li><li>테이블 정의서</li></ul></div>
+  <div class="sc box a" style="left:945px;--d:2.8s"><div class="n">4 · 관리</div><h3>계속 지키기</h3><p>새 시스템도 표준을 따르도록</p><ul><li>표준 관리 절차</li><li>품질 모니터링</li><li>변경 요청·승인 체계</li></ul></div>
+  <div class="quote a" style="--d:4.2s">데이터 표준화는 '정리'가 아니라<br><em>조직이 같은 언어로 말하게 만드는 일</em>입니다</div>
+</section>
+
+<div id="cap"></div>
+<div id="prog"></div>
+</div></div>
+
+<div id="ctrl">
+  <button id="prev" aria-label="이전 장면">◀ 이전</button>
+  <button id="play" aria-label="재생/일시정지">❚❚ 일시정지</button>
+  <button id="next" aria-label="다음 장면">다음 ▶</button>
+  <button id="capBtn">자막 끄기</button>
+  <button id="fsBtn">전체 화면</button>
+</div>
+<div id="dots"></div>
+<div id="label"></div>
+
+<script>
+const stage=document.getElementById('stage'), vp=document.getElementById('viewport');
+const scenes=[...document.querySelectorAll('.scene')];
+const cap=document.getElementById('cap'), prog=document.getElementById('prog');
+let cur=0, elapsed=0, paused=false, last=performance.now();
+
+// 화면 크기에 맞춰 16:9 무대 축소/확대
+function fit(){
+  const fs=document.fullscreenElement;
+  const w=Math.min(innerWidth-(fs?0:24),1280*1.5), h=innerHeight-(fs?0:130);
+  const s=Math.max(.2,Math.min(w/1280,h/720));
+  stage.style.transform=`scale(${s})`; vp.style.width=1280*s+'px'; vp.style.height=720*s+'px';
+}
+addEventListener('resize',fit); document.addEventListener('fullscreenchange',fit); fit();
+
+// 0장면: 흩어진 사각형이 정렬되는 효과
+(function(){
+  const box=document.getElementById('chaos'), cols=['#f87171','#fbbf24','#a78bfa','#60a5fa','#f472b6','#4ade80'];
+  for(let r=0;r<7;r++)for(let c=0;c<9;c++){
+    const d=document.createElement('div'); d.className='sq';
+    d.style.left=c*46+'px'; d.style.top=r*46+'px';
+    d.style.setProperty('--sx',(Math.random()*500-250)+'px'); d.style.setProperty('--sy',(Math.random()*400-200)+'px');
+    d.style.setProperty('--r',(Math.random()*360)+'deg'); d.style.setProperty('--c',cols[(Math.random()*cols.length)|0]);
+    d.style.setProperty('--d',(1.5+Math.random()*1.2).toFixed(2)+'s'); box.appendChild(d);
+  }
+})();
+
+// 1장면: 시스템 사이 엉킨 연결선
+(function(){
+  const svg=document.getElementById('tangle'), P=[[200,225],[640,200],[1080,225],[330,440],[950,440]];
+  let k=0, html='';
+  for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){
+    const [x1,y1]=P[i],[x2,y2]=P[j];
+    const cx=(x1+x2)/2+(Math.random()*260-130), cy=(y1+y2)/2+(Math.random()*220-110);
+    html+=`<path class="draw" pathLength="1" style="--d:${(1.6+k*.22).toFixed(2)}s;--t:.9s" d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="rgba(248,113,113,.65)" stroke-width="2.5" fill="none" stroke-dasharray="1"/>`;
+    k++;
+  }
+  svg.innerHTML=html;
+})();
+
+// 장면 이동
+const dots=document.getElementById('dots');
+scenes.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.dataset.name;b.onclick=()=>go(i);dots.appendChild(b);});
+function go(i){
+  cur=(i+scenes.length)%scenes.length; elapsed=0;
+  scenes.forEach(s=>s.classList.remove('active'));
+  void stage.offsetWidth;                  // 애니메이션 처음부터 다시 재생
+  scenes[cur].classList.add('active');
+  cap.classList.add('hide');
+  setTimeout(()=>{cap.textContent=scenes[cur].dataset.cap;cap.classList.remove('hide');},250);
+  [...dots.children].forEach((b,j)=>b.classList.toggle('on',j===cur));
+  document.getElementById('label').textContent=`${cur+1} / ${scenes.length} · ${scenes[cur].dataset.name}`;
+}
+function setPaused(p){
+  paused=p; document.body.classList.toggle('paused',p);
+  document.getElementById('play').textContent=p?'▶ 재생':'❚❚ 일시정지';
+  const hs=document.getElementById('hubsvg'); p?hs.pauseAnimations():hs.unpauseAnimations();
+}
+function tick(now){
+  const dt=(now-last)/1000; last=now;
+  if(!paused){
+    elapsed+=dt; const T=+scenes[cur].dataset.t;
+    prog.style.width=Math.min(100,elapsed/T*100)+'%';
+    if(elapsed>=T){ if(cur<scenes.length-1) go(cur+1); else {setPaused(true); elapsed=T;} }
+  }
+  requestAnimationFrame(tick);
+}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.getElementById('play').onclick=()=>{ if(paused&&cur===scenes.length-1&&elapsed>=+scenes[cur].dataset.t) go(0); setPaused(!paused); };
+document.getElementById('capBtn').onclick=e=>{const on=document.body.id!=='nocap';document.body.id=on?'nocap':'';e.target.textContent=on?'자막 켜기':'자막 끄기';};
+document.getElementById('fsBtn').onclick=()=>{document.fullscreenElement?document.exitFullscreen():vp.requestFullscreen?.();};
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')go(cur+1); else if(e.key==='ArrowLeft')go(cur-1);
+  else if(e.key===' '){e.preventDefault();document.getElementById('play').click();}
+});
+go(0); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
