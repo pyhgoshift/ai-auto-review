@@ -44,6 +44,22 @@ function Get-JsonObject([string]$raw) {
     return $raw.Substring($s, $e - $s + 1)
 }
 
+# 자동 대조: 초안에 나온 숫자·날짜·상태어가 원자료에 실제로 있는지 코드로 확인 (AI 판단에 맡기지 않음)
+function Test-AgainstSource([string]$draft, [string]$source) {
+    $found = @()
+    $patterns = @('\d{4}-\d{1,2}-\d{1,2}', '\d{1,2}/\d{1,2}', '\d+(?:\.\d+)?\s?%', '\d[\d,]*\s?(?:명|건|원|억)')
+    foreach ($pat in $patterns) {
+        foreach ($m in [regex]::Matches($draft, $pat)) {
+            $v = ($m.Value -replace '\s', '')
+            if (-not ($source -replace '\s', '').Contains($v)) { $found += "원자료에 없는 값: $v" }
+        }
+    }
+    foreach ($w in @('열림', '조치중', '종료', '제출완료')) {
+        if ($draft.Contains($w) -and -not $source.Contains($w)) { $found += "원자료에 없는 상태어: $w" }
+    }
+    return ($found | Select-Object -Unique)
+}
+
 # 서버 확인
 try { Invoke-WebRequest -Uri "$Server/health" -UseBasicParsing -TimeoutSec 10 | Out-Null }
 catch { Write-Host "로컬 AI 서버가 꺼져 있습니다. start.bat을 먼저 실행하세요." -ForegroundColor Red; exit 1 }
@@ -60,6 +76,7 @@ Write-Host "[1/4] 정리 담당: 원자료 → JSON"
 $facts = Invoke-Agent (Prompt-Of "01_정리담당.md") "[기준일]`n$Date`n`n[원자료]`n$Raw" -Json
 if ($facts.StartsWith("STOP")) { Write-Host $facts -ForegroundColor Yellow; Save-Text (Out-Of "STOP.txt") $facts; exit 2 }
 $facts = Get-JsonObject $facts
+$facts = $facts -replace '"null"', 'null'   # "null" 문자열을 진짜 null로
 Save-Text (Out-Of "1_정리.json") $facts
 
 # 2~3) 작성 담당 ↔ 검토 담당 (반려 시 최대 $MaxRevisions 회 수정)
@@ -81,7 +98,11 @@ for ($round = 0; $round -le $MaxRevisions; $round++) {
 
 # 4) 코디네이터: 사람에게 넘길 검토 요청서
 Write-Host "[4/4] 코디네이터: 검토 요청서 작성"
-$hist = ($history -join "`n") + "`n마지막 검토: $(Read-Text (Out-Of "3_검토_r$lastRound.json"))"
+$auto = Test-AgainstSource $draft $Raw
+$autoText = if ($auto) { ($auto -join "`n") } else { "없음" }
+Save-Text (Out-Of "3_자동대조.txt") $autoText
+$final = if ($verdict.판정 -eq "통과") { "통과" } else { "반려로 종료(미해결)" }
+$hist = ($history -join "`n") + "`n최종 판정: $final`n마지막 검토: $(Read-Text (Out-Of "3_검토_r$lastRound.json"))`n자동 대조(코드): $autoText"
 $summary = Invoke-Agent (Prompt-Of "00_코디네이터.md") "[최종초안]`n$draft`n`n[검토이력]`n$hist`n`n[정리JSON]`n$facts"
 Save-Text (Out-Of "4_검토요청서.md") $summary
 Save-Text (Out-Of "최종초안.md") $draft
