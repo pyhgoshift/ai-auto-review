@@ -63,7 +63,7 @@ $facts = Get-JsonObject $facts
 Save-Text (Out-Of "1_정리.json") $facts
 
 # 2~3) 작성 담당 ↔ 검토 담당 (반려 시 최대 $MaxRevisions 회 수정)
-$feedback = "없음"; $history = @(); $verdict = $null
+$feedback = "없음"; $history = @(); $verdict = $null; $lastRound = 0
 for ($round = 0; $round -le $MaxRevisions; $round++) {
     Write-Host "[2/4] 작성 담당: 초안 작성 (회차 $round)"
     $draft = Invoke-Agent (Prompt-Of "02_작성담당.md") "[정리JSON]`n$facts`n`n[서식]`n$Template`n`n[반려사항]`n$feedback"
@@ -72,6 +72,7 @@ for ($round = 0; $round -le $MaxRevisions; $round++) {
     Write-Host "[3/4] 검토 담당: 사실 대조"
     $review = Get-JsonObject (Invoke-Agent (Prompt-Of "03_검토담당.md") "[정리JSON]`n$facts`n`n[초안]`n$draft" -Json)
     Save-Text (Out-Of "3_검토_r$round.json") $review
+    $lastRound = $round
     $verdict = $review | ConvertFrom-Json
     $history += "회차 ${round}: $($verdict.판정), 문제 $(@($verdict.문제).Count)건"
     if ($verdict.판정 -eq "통과") { break }
@@ -80,7 +81,7 @@ for ($round = 0; $round -le $MaxRevisions; $round++) {
 
 # 4) 코디네이터: 사람에게 넘길 검토 요청서
 Write-Host "[4/4] 코디네이터: 검토 요청서 작성"
-$hist = ($history -join "`n") + "`n마지막 검토: $(Read-Text (Out-Of "3_검토_r$round.json"))"
+$hist = ($history -join "`n") + "`n마지막 검토: $(Read-Text (Out-Of "3_검토_r$lastRound.json"))"
 $summary = Invoke-Agent (Prompt-Of "00_코디네이터.md") "[최종초안]`n$draft`n`n[검토이력]`n$hist`n`n[정리JSON]`n$facts"
 Save-Text (Out-Of "4_검토요청서.md") $summary
 Save-Text (Out-Of "최종초안.md") $draft
