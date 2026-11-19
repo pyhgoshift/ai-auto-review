@@ -7,7 +7,7 @@ param(
     [Parameter(Mandatory = $true)][string]$InputFile,
     [Parameter(Mandatory = $true)][string]$Date,
     [string]$Server = "http://127.0.0.1:8080",
-    [int]$MaxRevisions = 2
+    [int]$MaxRevisions = 1   # 시험 결과 작은 모델의 검토 담당은 오탐이 많아 1회로 제한
 )
 
 $ErrorActionPreference = "Stop"
@@ -98,7 +98,7 @@ for ($round = 0; $round -le $MaxRevisions; $round++) {
 
 # 4) 코디네이터: 사람에게 넘길 검토 요청서
 Write-Host "[4/4] 코디네이터: 검토 요청서 작성"
-$auto = Test-AgainstSource $draft $Raw
+$auto = Test-AgainstSource $draft ($Raw + "`n" + $Date)   # 기준일은 사용자가 준 값이므로 허용
 $autoText = if ($auto) { ($auto -join "`n") } else { "없음" }
 Save-Text (Out-Of "3_자동대조.txt") $autoText
 $final = if ($verdict.판정 -eq "통과") { "통과" } else { "반려로 종료(미해결)" }
