@@ -1,0 +1,27 @@
+[project]
+name = "korea-quant-harness"
+version = "0.1.0"
+description = "KOSPI/KOSDAQ 자율 리서치·감시·모의주문 하네스 (PAPER 기본, LIVE는 운영자 승인 필요)"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.6,<3",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6"]
+# 다음 의존성은 GATE 승인 후 API 연동 단계에서만 추가한다(현재 미사용):
+# brain = ["anthropic"]          # SYSTEM 2 — 모델 ID는 런타임에 Models API로 확인
+# broker = ["websockets", "httpx"]  # KIS 연동 — 공식 문서 확인 전 미구현
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

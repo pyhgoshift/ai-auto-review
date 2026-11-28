@@ -1,0 +1,20 @@
+# 공통 설정. 모든 시각은 Asia/Seoul.
+timezone: Asia/Seoul
+mode: PAPER                      # 기본값은 항상 PAPER
+event_store_path: ./run/events.jsonl
+kill_file_path: ./run/KILL
+risk_limits_path: configs/risk_limits.yaml
+calendar_path: configs/market_calendar.yaml
+costs_path: configs/costs.yaml
+
+brain:
+  # 특정 모델을 "최신"이라고 가정하지 않는다. 운영자가 Models API로 확인한 ID만 기입.
+  # 후보(2026-11 기준 문서): claude-opus-5-5 — 연동 전 client.models.retrieve()로 재확인 필요.
+  model_id: null
+  model_verified_at: null
+  max_daily_cost_usd: null       # 운영자 승인 필요. null이면 BRAIN 호출 금지.
+
+reflex:
+  engine: deterministic_baseline # 경량 모델이 기준선을 out-of-sample로 이기기 전까지 기준선 사용
+  max_concurrency: 8
+  default_signal_ttl_ms: 1500

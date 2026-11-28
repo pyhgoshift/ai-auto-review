@@ -1,0 +1,3 @@
+mode: PAPER
+broker: paper
+paper_fill_model: trade_through   # 지정가는 체결가가 지정가를 "관통"했을 때만 체결 (낙관적 체결 방지)

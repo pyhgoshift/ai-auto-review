@@ -1,0 +1,39 @@
+# ┌───────────────────────────────────────────────────────────────┐
+# │ [예시 데이터 - 운영자 승인 필요] 아래 수치는 구조 예시이며       │
+# │ 근거 있는 권고치가 아니다. approval.status가 UNAPPROVED이면     │
+# │ PAPER 포함 모든 신규 주문이 차단된다 (fail-closed).              │
+# └───────────────────────────────────────────────────────────────┘
+approval:
+  status: UNAPPROVED             # UNAPPROVED | PAPER_APPROVED | LIVE_APPROVED
+  approved_by: null
+  approved_at: null
+  config_version: "risk-0.1.0-example"
+
+account:
+  max_daily_loss_krw: 300000
+  max_daily_drawdown_pct: 1.5
+  max_cumulative_drawdown_pct: 8.0
+  max_gross_exposure_krw: 20000000
+  near_limit_utilization_pct: 70.0   # 일일손실 사용률이 이 이상이면 near_limit
+position:
+  max_position_weight_pct: 10.0
+  max_sector_weight_pct: 30.0
+  max_order_value_krw: 3000000
+  max_adv_participation_pct: 0.5     # 일평균거래대금 대비 1회 주문 상한
+  max_book_participation_pct: 20.0   # 최우선~3호가 잔량 대비 상한
+execution:
+  max_spread_bps: 40
+  max_data_staleness_ms: 2000
+  max_api_latency_ms: 1500
+  vi_stabilization_sec: 120
+  max_submit_retries: 0              # 타임아웃 시 재전송 금지 — 대사로만 해결
+signal:
+  min_setup_quality: 2
+  entry_prob_threshold: 0.80         # 엄격 초과(>)
+  escalation_prob_threshold: 0.60
+  min_net_ev_margin_bps: 10          # 비용 차감 EV 하한 신뢰구간이 이 값 초과해야 진입
+  min_calibration_samples: 500
+  max_calibration_ece: 0.05
+sizing:
+  kelly_fraction_cap: 0.25           # Quarter Kelly 상한
+  min_strategy_trades: 200

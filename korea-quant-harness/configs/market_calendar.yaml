@@ -1,0 +1,39 @@
+# 거래 캘린더. coverage 밖 날짜는 UNKNOWN → 신규 진입 차단.
+# 세션 시각은 운영 명세 v2.0의 "확인할 사항"을 옮긴 것이며 verified=false.
+# 실제 구축 시점에 KRX/NXT 공지 원문과 대조 후 verified=true로 바꾼다.
+verified: false
+timezone: Asia/Seoul
+coverage: {from: "2026-11-02", to: "2026-12-31"}
+holidays:
+  - "2026-12-25"
+  - "2026-12-31"           # 연말 휴장 — 확인 필요
+special_days:
+  # 수능일 등: 개장 지연 예시 [예시 데이터 - 공지 확인 필요]
+  "2026-11-19": {shift_minutes: 60, note: "수능일 개장 1시간 지연 예시"}
+sessions:
+  KRX:
+    - {name: PRE_OPEN_AUCTION, start: "08:30", end: "09:00", continuous: false}
+    - {name: REGULAR,          start: "09:00", end: "15:20", continuous: true}
+    - {name: CLOSING_AUCTION,  start: "15:20", end: "15:30", continuous: false}
+    - {name: AFTER_MARKET,     start: "16:00", end: "20:00", continuous: false}
+  NXT:
+    - {name: PRE_MARKET,  start: "08:00", end: "08:50", continuous: true}
+    - {name: MAIN_MARKET, start: "09:00:30", end: "15:20", continuous: true}
+    - {name: AFTER_MARKET, start: "15:30", end: "20:00", continuous: true}
+closing_gate:
+  entry_block_offset_min: 5       # 마감 동시호가 시작 N분 전 신규 진입 차단 (일반일 15:15)
+  block_all_new_entries: true     # 명세는 '데이트레이딩'만 차단 — 보수적으로 모든 신규 진입 차단
+tick_tables:
+  - version: "KRX-2023-01-25"
+    effective_from: "2023-01-25"
+    verified: false               # 거래소 공식 표와 대조 필요
+    markets: [KOSPI, KOSDAQ]
+    bands:                        # [price_below, tick]; 마지막은 상한 없음
+      - [2000, 1]
+      - [5000, 5]
+      - [20000, 10]
+      - [50000, 50]
+      - [200000, 100]
+      - [500000, 500]
+      - [null, 1000]
+daily_price_limit_pct: 30.0       # 확인 필요

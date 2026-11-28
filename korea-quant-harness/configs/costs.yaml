@@ -1,0 +1,10 @@
+# [검증 필요] 2026년 매도세 참고치 — 실제 적용 전 법령·증권사 공지로 재확인.
+verified: false
+source_note: "운영 명세 v2.0의 참고 기준. 법령/증권사 공지 원문 확인 전까지 verified=false"
+effective_from: "2026-01-01"
+commission_bps: 1.5                  # [예시 데이터 - 증권사 실제 요율 연동 필요] 매수·매도 각각
+sell_tax_bps:
+  KOSPI: 20.0                        # 증권거래세 0.05% + 농특세 0.15%
+  KOSDAQ: 20.0                       # 증권거래세 0.20%
+commission_includes_exchange_fees: true   # 유관기관 제비용이 수수료에 포함되는지 — 증권사 확인 필요
+impact_coefficient: 0.1              # [예시 데이터] 제곱근 시장충격 계수
